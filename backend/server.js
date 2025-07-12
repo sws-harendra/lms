@@ -6,6 +6,7 @@ const routes = require("./routes/route");
 
 const express = require("express");
 const cors = require("cors");
+const seedRoles = require("./config/seedRole");
 const app = express();
 
 app.use(cors());
@@ -21,6 +22,9 @@ mongoose
   .catch((error) => {
     console.error("❌ Connection error:", error.message);
   });
+
+//run this for the first time to seed roles and permissions
+// seedRoles();
 
 // all routs in route folder
 app.use("/api", routes); // All routes prefixed with /api

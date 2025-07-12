@@ -5,7 +5,11 @@ const userSchema = new mongoose.Schema({
   password: String,
   phone: { type: String, unique: true, sparse: true },
   name: String,
-  role: String,
+  role: {
+    type: String,
+    // enum: ["user", "instructor", "admin"],
+    default: "user", // 👈 default role
+  },
   maxDevices: { type: Number, default: 2 },
   isVerified: Boolean,
 
