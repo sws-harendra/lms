@@ -9,7 +9,12 @@ const cors = require("cors");
 const seedRoles = require("./config/seedRole");
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // or your frontend URL
+    credentials: true, // allow sending cookies/headers
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 const mongoURI = process.env.MONGO_URI;

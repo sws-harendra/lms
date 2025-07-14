@@ -125,10 +125,10 @@ const emailloginController = async (req, res) => {
     // Enforce max devices
     if (user.sessions.length >= user.maxDevices) {
       // Remove oldest session
-      //   user.sessions.shift();
-      return res
-        .status(403)
-        .json({ message: "Device limit reached Logout from other devices" });
+      user.sessions.shift();
+      // return res
+      //   .status(403)
+      //   .json({ message: "Device limit reached Logout from other devices" });
     }
 
     const refreshToken = generateRefreshToken(user);
@@ -167,10 +167,10 @@ const emailloginController = async (req, res) => {
 // Email Signup
 const emailsignup = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Validate input
-    if (!username || !email || !password) {
+    if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -185,7 +185,7 @@ const emailsignup = async (req, res) => {
 
     // Create user with "isVerified" flag
     const newUser = new User({
-      username,
+      name,
       email,
       password: hashedPassword,
       isVerified: false,
@@ -208,7 +208,7 @@ const emailsignup = async (req, res) => {
     // Send verification email
     try {
       //   await sendMail(email, "Verify your email", "verifyEmail", {
-      //     username: username,
+      //     name: name,
       //     verifyLink: verifyLink,
       //   });
     } catch (mailError) {
@@ -247,7 +247,7 @@ const resendEmailVerification = async (req, res) => {
 
     try {
       //   await sendMail(email, "Resend Verification Email", "verifyEmail", {
-      //     username: user.username,
+      //     name: user.name,
       //     verifyLink,
       //   });
       res.json({ message: "Verification email resent successfully!" });
@@ -345,7 +345,7 @@ const forgotPassword = async (req, res) => {
 
     try {
       await sendMail(email, "Password Reset Request", "resetPassword", {
-        username: user.username,
+        username: user.name,
         resetLink: resetLink,
       });
       res.json({ message: "Reset link sent to email" });
