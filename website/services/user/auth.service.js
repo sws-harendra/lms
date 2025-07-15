@@ -43,13 +43,13 @@ export const authService = {
 
   // Logout
   logout: async () => {
-    const response = await axiosInstance.post("/user/auth/logout");
+    const response = await axiosInstance.post("/user/logout");
     return response.data;
   },
 
   // Refresh token
   refreshToken: async () => {
-    const response = await axiosInstance.post("/user/auth/refreshtoken");
+    const response = await axiosInstance.post("/user/refreshtoken");
     return response.data;
   },
 

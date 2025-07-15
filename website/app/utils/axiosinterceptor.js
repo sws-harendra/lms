@@ -23,7 +23,7 @@ const refreshAccessToken = async () => {
   try {
     // No need to send refreshToken in body since it's in httpOnly cookie
     const response = await axios.post(
-      `${serverurl}/auth/refreshtoken`,
+      `${serverurl}/user/refreshtoken`,
       {}, // Empty body
       {
         withCredentials: true, // Send cookies with this request
@@ -43,11 +43,7 @@ instance.interceptors.response.use(
     const originalRequest = error.config;
 
     // Skip token refresh on /auth routes
-    const authEndpoints = [
-      "/user/login",
-      "/user/register",
-      //   "/auth/refreshtoken",
-    ];
+    const authEndpoints = ["/user/login", "/user/register"];
     const isAuthRequest = authEndpoints.some((endpoint) =>
       originalRequest.url?.includes(endpoint)
     );
@@ -64,7 +60,7 @@ instance.interceptors.response.use(
         return instance(originalRequest);
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
-        window.location.href = "/login";
+        window.location.href = "/user/login";
       }
     }
 

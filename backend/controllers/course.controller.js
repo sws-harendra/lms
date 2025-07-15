@@ -1,4 +1,5 @@
 const Course = require("../models/course.model");
+const CourseCategory = require("../models/courseCategory.model");
 
 const getAllCourses = async (req, res) => {
   try {
@@ -17,17 +18,34 @@ const getAllCourses = async (req, res) => {
 
     const query = {};
 
-    // Search by title, category, or tags
+    // Search by title, description, or tags
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
         { tags: { $regex: search, $options: "i" } },
       ];
     }
 
     // Optional Filters
-    if (category) query.category = category;
+    if (category) {
+      // Check if category is ObjectId or slug/name
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        query.category = category;
+      } else {
+        // Find category by slug or name
+        const categoryDoc = await CourseCategory.findOne({
+          $or: [
+            { slug: category },
+            { name: { $regex: category, $options: "i" } },
+          ],
+        });
+        if (categoryDoc) {
+          query.category = categoryDoc._id;
+        }
+      }
+    }
+
     if (isFree !== undefined) query.isFree = isFree === "true";
     if (isPublished !== undefined) query.isPublished = isPublished === "true";
 
@@ -48,8 +66,10 @@ const getAllCourses = async (req, res) => {
     // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Fetch courses
+    // Fetch courses with populated category
     const courses = await Course.find(query)
+      .populate("category", "name slug icon")
+      .populate("instructor", "name email")
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit))
@@ -75,10 +95,10 @@ const getAllCourses = async (req, res) => {
 
 const getCourseById = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id).populate(
-      "instructor",
-      "name email"
-    );
+    const course = await Course.findById(req.params.id)
+      .populate("instructor", "name email")
+      .populate("category", "name slug icon");
+
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json(course);
   } catch (err) {
@@ -91,10 +111,10 @@ const getCourseById = async (req, res) => {
 // Get a single course by slug
 const getCourseBySlug = async (req, res) => {
   try {
-    const course = await Course.findOne({ slug: req.params.slug }).populate(
-      "instructor",
-      "name email"
-    );
+    const course = await Course.findOne({ slug: req.params.slug })
+      .populate("instructor", "name email")
+      .populate("category", "name slug icon");
+
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json(course);
   } catch (err) {
@@ -107,10 +127,21 @@ const getCourseBySlug = async (req, res) => {
 // Update a course
 const updateCourse = async (req, res) => {
   try {
+    // If category is being updated, validate it exists
+    if (req.body.category) {
+      const categoryExists = await CourseCategory.findById(req.body.category);
+      if (!categoryExists) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+    }
+
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    });
+    })
+      .populate("instructor", "name email")
+      .populate("category", "name slug icon");
+
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json({ message: "Course updated", course });
   } catch (err) {
@@ -136,7 +167,11 @@ const deleteCourse = async (req, res) => {
 // Toggle publish/unpublish
 const togglePublishCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
+    const course = await Course.findById(req.params.id).populate(
+      "category",
+      "name slug icon"
+    );
+
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     course.isPublished = !course.isPublished;
@@ -156,10 +191,10 @@ const togglePublishCourse = async (req, res) => {
 // Get published courses only (for students / landing page)
 const getPublishedCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ isPublished: true }).populate(
-      "instructor",
-      "name email"
-    );
+    const courses = await Course.find({ isPublished: true })
+      .populate("instructor", "name email")
+      .populate("category", "name slug icon");
+
     res.json(courses);
   } catch (err) {
     res.status(500).json({
@@ -169,7 +204,7 @@ const getPublishedCourses = async (req, res) => {
   }
 };
 
-const createCourse = async (req, res) => {const createCourse = async (req, res) => {
+const createCourse = async (req, res) => {
   try {
     const {
       title,
@@ -194,10 +229,16 @@ const createCourse = async (req, res) => {const createCourse = async (req, res) 
       !description ||
       !thumbnail ||
       !category ||
-      !price ||
+      price === undefined ||
       !instructor
     ) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Validate category exists
+    const categoryExists = await CourseCategory.findById(category);
+    if (!categoryExists) {
+      return res.status(400).json({ message: "Invalid category ID" });
     }
 
     // Check for duplicate slug
@@ -220,16 +261,72 @@ const createCourse = async (req, res) => {const createCourse = async (req, res) 
       isPublished,
       instructor,
       certificateEnabled,
-      createdBy: req.user._id, // assumes user injected via auth middleware
+      createdBy: req.user.id, // assumes user injected via auth middleware
       sections, // can include resources inline
     });
 
-    res.status(201).json({ message: "Course created", course: newCourse });
+    // Populate the created course before sending response
+    const populatedCourse = await Course.findById(newCourse._id)
+      .populate("instructor", "name email")
+      .populate("category", "name slug icon");
+
+    res.status(201).json({
+      message: "Course created",
+      course: populatedCourse,
+    });
   } catch (error) {
     console.error("Course creation failed:", error);
     res.status(500).json({ message: "Server error while creating course" });
   }
 };
+
+// Get courses by category
+const getCoursesByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    // Validate category exists
+    const category = await CourseCategory.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const courses = await Course.find({
+      category: categoryId,
+      isPublished: true,
+    })
+      .populate("instructor", "name email")
+      .populate("category", "name slug icon")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await Course.countDocuments({
+      category: categoryId,
+      isPublished: true,
+    });
+
+    res.json({
+      data: courses,
+      category: category,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error fetching courses by category",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   getAllCourses,
   createCourse,
@@ -239,4 +336,5 @@ module.exports = {
   deleteCourse,
   togglePublishCourse,
   getPublishedCourses,
+  getCoursesByCategory,
 };

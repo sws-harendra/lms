@@ -18,8 +18,26 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { brandName } from "@/app/contants";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "@/lib/store/features/authSlice";
 
 const UserNavbar = () => {
+  const {
+    status,
+    error,
+    loginMethod,
+    phoneNumber,
+    otpSent,
+    isAuthenticated,
+    user,
+  } = useSelector((state) => state.auth);
+  const dispatch = useDispatch(); // Add this line
+
+  const handleLogout = () => {
+    console.log("herer");
+    dispatch(logout()); // Dispatch the logout action
+  };
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -53,7 +71,7 @@ const UserNavbar = () => {
               <NavItem icon={Calendar} text="Schedule" />
               <NavItem icon={Award} text="Achievements" />
               <NavItem icon={Users} text="Community" />
-              <NavItem icon={BarChart3} text="Analytics" />
+              {/* <NavItem icon={BarChart3} text="Analytics" /> */}
             </div>
           </div>
 
@@ -132,17 +150,20 @@ const UserNavbar = () => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">
-                      John Doe
+                      {user.name || "John Doe"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      john.doe@university.edu
+                      {user.email || "john.doe@university.edu"}
                     </p>
                   </div>
                   <ProfileMenuItem icon={User} text="Profile" />
                   <ProfileMenuItem icon={Settings} text="Settings" />
                   <ProfileMenuItem icon={Award} text="Certificates" />
                   <div className="border-t border-gray-100 mt-2 pt-2">
-                    <ProfileMenuItem text="Sign out" />
+                    <ProfileMenuItem
+                      text="Sign out"
+                      clickmethod={handleLogout}
+                    />
                   </div>
                 </div>
               )}
@@ -235,8 +256,11 @@ const NotificationItem = ({ title, message, time, unread = false }) => (
   </div>
 );
 
-const ProfileMenuItem = ({ icon: Icon, text }) => (
-  <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
+const ProfileMenuItem = ({ icon: Icon, text, clickmethod }) => (
+  <button
+    onClick={() => clickmethod()}
+    className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+  >
     {Icon && <Icon className="h-4 w-4" />}
     <span>{text}</span>
   </button>

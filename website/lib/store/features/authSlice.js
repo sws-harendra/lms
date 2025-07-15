@@ -75,6 +75,7 @@ export const getUserDetails = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await authService.getUserDetails();
+      console.log(response);
       return response.user;
     } catch (error) {
       return rejectWithValue(
@@ -89,6 +90,10 @@ export const logout = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await authService.logout();
+      if (typeof window !== "undefined") {
+        window.location.href = "/user/login";
+      }
+
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Logout failed");

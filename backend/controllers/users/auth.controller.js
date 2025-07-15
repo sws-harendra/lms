@@ -400,10 +400,22 @@ const updatepassword = async (req, res) => {
 // Get User Details
 const userdetail = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select(
-      "-password -sessions -otpCode -otpExpiry"
-    );
+    if (!req.user || !req.user.id) {
+      return res
+        .status(400)
+        .json({ message: "Invalid request. User ID missing." });
+    }
 
+    const user = await User.findById(req.user.id)
+      .select("-password -sessions -otpCode -otpExpiry")
+      .populate({
+        path: "role",
+        select: "name permissions",
+        populate: {
+          path: "permissions",
+          select: "name description action resource", // Select the fields you want from permissions
+        },
+      });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -418,14 +430,16 @@ const userdetail = async (req, res) => {
 // Refresh Token
 const refreshToken = async (req, res) => {
   try {
+    console.log("here==>");
     const token = req.cookies.refreshToken || req.body.refreshToken;
+    console.log("-435", token);
 
     if (!token)
       return res.status(401).json({ message: "No refresh token provided" });
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.id);
-
+    console.log("-441", user);
     if (!user)
       return res
         .status(403)
@@ -435,12 +449,14 @@ const refreshToken = async (req, res) => {
     const sessionMatch = user.sessions.find(
       (session) => session.refreshToken === token
     );
+    console.log("-451", sessionMatch);
 
     if (!sessionMatch) {
       return res.status(403).json({ message: "Session not found or expired" });
     }
 
     const newAccessToken = generateAccessToken(user);
+    console.log("-458", newAccessToken);
 
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,

@@ -41,13 +41,15 @@ const seedRoles = async () => {
   const existingAdmin = await User.findOne({ email: "admin@lms.com" });
 
   if (!existingAdmin) {
-    await User.create({
+    let newAdmin = new User({
       name: "Super Admin",
       email: "admin@lms.com",
       password: hashedPassword,
       isVerified: true,
       role: adminRole._id,
     });
+    await newAdmin.save();
+
     console.log("✅ Admin user created: admin@example.com / admin123");
   } else {
     console.log("ℹ️ Admin user already exists");

@@ -17,16 +17,25 @@ import {
   setPhoneNumber,
   clearError,
   resetAuthState,
+  getUserDetails,
 } from "@/lib/store/features/authSlice";
 import { toast } from "sonner";
+import useRoleRedirect, { handleRoleRedirect } from "@/hooks/useRoleRedirect";
 
 export function LoginForm({ className, ...props }) {
   // Email Login Form
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const { status, error, loginMethod, phoneNumber, otpSent, isAuthenticated } =
-    useSelector((state) => state.auth);
+  const {
+    status,
+    error,
+    loginMethod,
+    phoneNumber,
+    otpSent,
+    isAuthenticated,
+    user,
+  } = useSelector((state) => state.auth);
 
   const [otp, setOtp] = useState("");
   const isLoading = status === "loading";
@@ -38,10 +47,9 @@ export function LoginForm({ className, ...props }) {
 
   // Redirect if authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      // router.push("/user/dashboard"); // or wherever you want to redirect
-    }
-  }, [isAuthenticated, router]);
+    if (isAuthenticated)
+      handleRoleRedirect(dispatch, router, isAuthenticated, user);
+  }, [isAuthenticated, user, dispatch, router]);
 
   // Clear error when component unmounts or login method changes
   useEffect(() => {
@@ -155,7 +163,7 @@ export function LoginForm({ className, ...props }) {
           </div>
           <Button
             variant="outline"
-            type="button"
+            type="submit"
             className="w-full"
             onClick={() => switchToPhone()}
           >

@@ -9,6 +9,8 @@ router.post("/registerwithemail", auth.emailsignup);
 router.post("/verifyEmail", auth.verifyEmail);
 router.post("/sendEmailForVerification", auth.resendEmailVerification);
 router.post("/resendOtp", auth.resendOtpToPhone);
-router.post("/userdetails", authenticateToken, auth.userdetail);
+router.get("/userdetails", authenticateToken, auth.userdetail);
+router.post("/refreshtoken", auth.refreshToken);
+router.post("/logout", authenticateToken, auth.logout);
 
 module.exports = router;
