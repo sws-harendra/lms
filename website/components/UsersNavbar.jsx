@@ -150,10 +150,10 @@ const UserNavbar = () => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">
-                      {user.name || "John Doe"}
+                      {user?.name || "John Doe"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {user.email || "john.doe@university.edu"}
+                      {user?.email || "john.doe@university.edu"}
                     </p>
                   </div>
                   <ProfileMenuItem icon={User} text="Profile" />

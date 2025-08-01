@@ -2,6 +2,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./features/authSlice";
 import courseReducer from "./features/courseSlice";
+import enrollmentReducer from "./features/enrollmentSlice";
 
 // import userReducer from "./features/user/userSlice";
 // import instructorReducer from "./features/instructor/instructorSlice";
@@ -12,6 +13,8 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     course: courseReducer,
+    enrollment: enrollmentReducer,
+
     // instructor: instructorReducer,
     // admin: adminReducer,
     // common: commonReducer,

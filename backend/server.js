@@ -7,6 +7,7 @@ const routes = require("./routes/route");
 const express = require("express");
 const cors = require("cors");
 const seedRoles = require("./config/seedRole");
+const seedCourseCategory = require("./config/seedCategory");
 const app = express();
 
 app.use(
@@ -22,6 +23,9 @@ const mongoURI = process.env.MONGO_URI;
 mongoose
   .connect(mongoURI)
   .then(() => {
+    // seedRoles();
+    seedCourseCategory();
+
     console.log("✅ MongoDB connected to local instance.");
   })
   .catch((error) => {
@@ -29,7 +33,6 @@ mongoose
   });
 
 //run this for the first time to seed roles and permissions
-// seedRoles();
 
 // all routs in route folder
 app.use("/api", routes); // All routes prefixed with /api

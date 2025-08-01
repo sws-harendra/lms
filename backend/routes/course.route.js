@@ -12,6 +12,14 @@ router.post(
   authorizePermission("create_course"),
   courseController.createCourse
 );
+
+router.post(
+  "/add-course",
+  authenticateToken,
+  authorizePermission("create_course"),
+  courseController.createCourse
+);
+
 router.get("/published", courseController.getPublishedCourses);
 router.get("/slug/:slug", courseController.getCourseBySlug);
 router.get("/:id", courseController.getCourseById);

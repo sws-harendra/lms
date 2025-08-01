@@ -1,5 +1,6 @@
 const Course = require("../models/course.model");
 const CourseCategory = require("../models/courseCategory.model");
+const mongoose = require("mongoose");
 
 const getAllCourses = async (req, res) => {
   try {
@@ -68,6 +69,10 @@ const getAllCourses = async (req, res) => {
 
     // Fetch courses with populated category
     const courses = await Course.find(query)
+      .select(
+        "title slug description thumbnail price discountPrice isFree rating category instructor"
+      )
+
       .populate("category", "name slug icon")
       .populate("instructor", "name email")
       .sort(sort)
@@ -79,7 +84,7 @@ const getAllCourses = async (req, res) => {
     const total = await Course.countDocuments(query);
 
     res.status(200).json({
-      data: courses,
+      courses: courses,
       pagination: {
         total,
         page: parseInt(page),
@@ -100,7 +105,7 @@ const getCourseById = async (req, res) => {
       .populate("category", "name slug icon");
 
     if (!course) return res.status(404).json({ message: "Course not found" });
-    res.json(course);
+    res.json({ course });
   } catch (err) {
     res
       .status(500)
@@ -220,6 +225,10 @@ const createCourse = async (req, res) => {
       instructor,
       certificateEnabled = false,
       sections = [],
+      level = "beginner",
+      language = "English",
+      requirements = [],
+      whatYouWillLearn = [],
     } = req.body;
 
     // Validate mandatory fields
@@ -247,6 +256,18 @@ const createCourse = async (req, res) => {
       return res.status(409).json({ message: "Slug already exists" });
     }
 
+    // Calculate total duration from lessons
+    let totalDuration = 0;
+    sections.forEach((section) => {
+      if (section.lessons) {
+        section.lessons.forEach((lesson) => {
+          if (lesson.duration) {
+            totalDuration += lesson.duration;
+          }
+        });
+      }
+    });
+
     // Create the course
     const newCourse = await Course.create({
       title,
@@ -261,8 +282,13 @@ const createCourse = async (req, res) => {
       isPublished,
       instructor,
       certificateEnabled,
-      createdBy: req.user.id, // assumes user injected via auth middleware
-      sections, // can include resources inline
+      createdBy: req.user?.id || instructor, // fallback to instructor if no user in req
+      sections,
+      totalDuration,
+      level,
+      language,
+      requirements,
+      whatYouWillLearn,
     });
 
     // Populate the created course before sending response
@@ -271,11 +297,21 @@ const createCourse = async (req, res) => {
       .populate("category", "name slug icon");
 
     res.status(201).json({
-      message: "Course created",
+      message: "Course created successfully",
       course: populatedCourse,
     });
   } catch (error) {
     console.error("Course creation failed:", error);
+
+    // Handle validation errors
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({
+        message: "Validation error",
+        errors,
+      });
+    }
+
     res.status(500).json({ message: "Server error while creating course" });
   }
 };

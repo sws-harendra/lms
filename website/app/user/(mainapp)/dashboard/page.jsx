@@ -2,6 +2,7 @@
 import UserNavbar from "@/components/UsersNavbar";
 import Image from "next/image";
 import { useSelector } from "react-redux";
+import Courses from "../courses/page";
 
 export default function Home() {
   const {
@@ -12,6 +13,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <UserNavbar />
+      <Courses />
 
       {/* <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
