@@ -45,6 +45,8 @@ export function LoginForm({ className, ...props }) {
     }
   }, [error]);
 
+  
+
   // Redirect if authenticated
   useEffect(() => {
     if (isAuthenticated)
@@ -67,6 +69,9 @@ export function LoginForm({ className, ...props }) {
     };
 
     dispatch(emailLogin(credentials));
+    if (status === "succeeded") {
+      router.push("/dashboard");
+    }
   };
 
   const handlePhoneSubmit = async (e) => {
