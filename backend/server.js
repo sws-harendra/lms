@@ -12,7 +12,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // or your frontend URL
+    origin: process.env.CLIENT_URL, // or your frontend URL
     credentials: true, // allow sending cookies/headers
   })
 );
