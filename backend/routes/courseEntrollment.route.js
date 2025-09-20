@@ -12,7 +12,7 @@ const { authenticateToken } = require("../middlewares/user.auth");
 
 // Enrollment routes
 router.post("/enroll/:courseId", authenticateToken, enrollInCourse);
-router.post("/complete", authenticateToken, completeEnrollment);
+// router.post("/complete", authenticateToken, completeEnrollment);
 router.get("/my-courses", authenticateToken, getUserEnrollments);
 router.get("/:enrollmentId", authenticateToken, getEnrollmentDetails);
 router.post(

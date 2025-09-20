@@ -38,7 +38,7 @@ mongoose
 app.use("/api", routes); // All routes prefixed with /api
 
 app.get("/", (req, res) => {
-  res.json("hello from backend");
+  res.json("hello from lms backend");
 });
 
 let port = process.env.PORT || 8000;

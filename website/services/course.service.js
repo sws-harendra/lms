@@ -9,7 +9,13 @@ export const courseService = {
     );
     return response.data;
   },
-
+  getEnrolledCourses: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await axiosInstance.get(
+      `/course/my-enrolled-courses${queryString ? `?${queryString}` : ""}`
+    );
+    return response.data;
+  },
   // Get published courses only
   getPublishedCourses: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

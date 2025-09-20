@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Card,
   CardHeader,
@@ -34,14 +34,18 @@ import Image from "next/image";
 import { getCourseById } from "@/lib/store/features/courseSlice";
 import { VideoPlayer } from "@/components/videoPlayer";
 import { Spinner } from "@/components/laoder";
-import { checkCourseAccess } from "@/lib/store/features/enrollmentSlice";
+import {
+  checkCourseAccess,
+  enrollInCourse,
+} from "@/lib/store/features/enrollmentSlice";
+import { toast } from "sonner";
 // import PaymentModal from "@/app/user/components/paymentModal";
 
 const CourseById = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-
+  const router = useRouter();
   const { currentCourse, status, error } = useSelector((state) => state.course);
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -81,13 +85,22 @@ const CourseById = () => {
     }
 
     if (!currentCourse) return;
-
     setIsEnrolling(true);
 
     try {
       const enrollmentData = {
         paymentMethod:
           currentCourse.isFree || currentCourse.price === 0 ? "free" : "stripe",
+
+        // For now: send a static transactionId to simulate completed payment
+        transactionId:
+          currentCourse.isFree || currentCourse.price === 0
+            ? undefined
+            : `static_txn_${Date.now()}`,
+        paymentStatus:
+          currentCourse.isFree || currentCourse.price === 0
+            ? "completed"
+            : "completed", // always completed for now
       };
 
       const result = await dispatch(
@@ -97,18 +110,11 @@ const CourseById = () => {
         })
       ).unwrap();
 
-      if (currentCourse.isFree || currentCourse.price === 0) {
-        toast.success("Successfully enrolled in the course!");
-        // Refresh course access
-        dispatch(checkCourseAccess(id));
-      } else {
-        // Handle payment flow here
-        toast.info("Redirecting to payment...");
-        // You can integrate with Stripe, PayPal, etc. here
-        handlePayment(result);
-      }
+      toast.success("Successfully enrolled in the course!");
+      await router.push("/user/mycourses");
+      dispatch(checkCourseAccess(id));
     } catch (error) {
-      toast.error(error || "Failed to enroll in course");
+      toast.error(error.message || "Failed to enroll in course");
     } finally {
       setIsEnrolling(false);
     }
@@ -167,8 +173,6 @@ const CourseById = () => {
   //   };
   // };
   const handleDemoPayment = async () => {
-    setIsProcessing(true);
-
     // Simulate payment processing
     setTimeout(async () => {
       try {
@@ -440,11 +444,7 @@ const CourseById = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button
-                  onClick={handleDemoPayment}
-                  size="lg"
-                  className="w-full"
-                >
+                <Button onClick={handleEnrollment} size="lg" className="w-full">
                   Enroll Now
                 </Button>
                 <div className="space-y-2 text-sm text-muted-foreground">

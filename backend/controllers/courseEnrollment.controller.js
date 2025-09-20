@@ -7,9 +7,10 @@ const User = require("../models/user.model");
 const enrollInCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const { paymentMethod, transactionId, paymentStatus } = req.body;
     const userId = req.user.id;
 
-    // Check if course exists and is published
+    // 1. Check if course exists and is published
     const course = await Course.findById(courseId);
     if (!course || !course.isPublished) {
       return res
@@ -17,19 +18,18 @@ const enrollInCourse = async (req, res) => {
         .json({ message: "Course not found or not available" });
     }
 
-    // Check if user is already enrolled
+    // 2. Check if user already enrolled
     const existingEnrollment = await Enrollment.findOne({
       user: userId,
       course: courseId,
     });
-
     if (existingEnrollment) {
       return res
         .status(400)
         .json({ message: "Already enrolled in this course" });
     }
 
-    // Handle free courses
+    // 3. Handle free courses (direct enrollment)
     if (course.isFree || course.price === 0) {
       const enrollment = new Enrollment({
         user: userId,
@@ -43,8 +43,6 @@ const enrollInCourse = async (req, res) => {
       });
 
       await enrollment.save();
-
-      // Add user to course's enrolled users
       await Course.findByIdAndUpdate(courseId, {
         $addToSet: { enrolledUsers: userId },
       });
@@ -55,56 +53,42 @@ const enrollInCourse = async (req, res) => {
       });
     }
 
-    // For paid courses, create payment record
+    // 4. Paid courses → Check if payment is completed
+    if (!transactionId || paymentStatus !== "completed") {
+      // If payment not completed, create a pending payment record and return
+      const pendingPayment = new Payment({
+        user: userId,
+        course: courseId,
+        amount: course.discountPrice || course.price,
+        paymentMethod: paymentMethod || "stripe",
+        status: "pending",
+      });
+
+      await pendingPayment.save();
+
+      return res.status(200).json({
+        message: "Payment initiated. Complete the payment to get access.",
+        paymentId: pendingPayment._id,
+        amount: pendingPayment.amount,
+      });
+    }
+
+    // 5. Payment completed → Save payment + enrollment
     const payment = new Payment({
       user: userId,
       course: courseId,
       amount: course.discountPrice || course.price,
-      paymentMethod: req.body.paymentMethod || "stripe",
-      status: "pending",
+      paymentMethod: paymentMethod || "stripe",
+      status: "completed",
+      transactionId,
+      metadata: req.body.metadata || {},
     });
 
     await payment.save();
 
-    res.status(200).json({
-      message: "Payment initiated",
-      paymentId: payment._id,
-      amount: payment.amount,
-      currency: payment.currency,
-    });
-  } catch (error) {
-    console.error("Enrollment error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// Complete enrollment after successful payment
-const completeEnrollment = async (req, res) => {
-  try {
-    const { paymentId, transactionId } = req.body;
-    const userId = req.user.id;
-
-    // Find and update payment
-    const payment = await Payment.findOneAndUpdate(
-      { _id: paymentId, user: userId, status: "pending" },
-      {
-        status: "completed",
-        transactionId,
-        metadata: req.body.metadata || {},
-      },
-      { new: true }
-    );
-
-    if (!payment) {
-      return res
-        .status(404)
-        .json({ message: "Payment not found or already processed" });
-    }
-
-    // Create enrollment
     const enrollment = new Enrollment({
       user: userId,
-      course: payment.course,
+      course: courseId,
       payment: {
         transactionId,
         amount: payment.amount,
@@ -117,12 +101,12 @@ const completeEnrollment = async (req, res) => {
 
     await enrollment.save();
 
-    // Update payment with enrollment reference
+    // Link payment <-> enrollment
     payment.enrollment = enrollment._id;
     await payment.save();
 
-    // Add user to course's enrolled users
-    await Course.findByIdAndUpdate(payment.course, {
+    // Add user to course enrolledUsers
+    await Course.findByIdAndUpdate(courseId, {
       $addToSet: { enrolledUsers: userId },
     });
 
@@ -131,10 +115,68 @@ const completeEnrollment = async (req, res) => {
       enrollment,
     });
   } catch (error) {
-    console.error("Complete enrollment error:", error);
+    console.error("Unified enrollment error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// Complete enrollment after successful payment
+// const completeEnrollment = async (req, res) => {
+//   try {
+//     const { paymentId, transactionId } = req.body;
+//     const userId = req.user.id;
+
+//     // Find and update payment
+//     const payment = await Payment.findOneAndUpdate(
+//       { _id: paymentId, user: userId, status: "pending" },
+//       {
+//         status: "completed",
+//         transactionId,
+//         metadata: req.body.metadata || {},
+//       },
+//       { new: true }
+//     );
+
+//     if (!payment) {
+//       return res
+//         .status(404)
+//         .json({ message: "Payment not found or already processed" });
+//     }
+
+//     // Create enrollment
+//     const enrollment = new Enrollment({
+//       user: userId,
+//       course: payment.course,
+//       payment: {
+//         transactionId,
+//         amount: payment.amount,
+//         currency: payment.currency,
+//         paymentMethod: payment.paymentMethod,
+//         paymentStatus: "completed",
+//         paymentDate: new Date(),
+//       },
+//     });
+
+//     await enrollment.save();
+
+//     // Update payment with enrollment reference
+//     payment.enrollment = enrollment._id;
+//     await payment.save();
+
+//     // Add user to course's enrolled users
+//     await Course.findByIdAndUpdate(payment.course, {
+//       $addToSet: { enrolledUsers: userId },
+//     });
+
+//     res.status(201).json({
+//       message: "Enrollment completed successfully",
+//       enrollment,
+//     });
+//   } catch (error) {
+//     console.log("-->Complete enrollment error:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
 
 // Get user's enrollments
 const getUserEnrollments = async (req, res) => {
@@ -270,7 +312,7 @@ const checkCourseAccess = async (req, res) => {
 
 module.exports = {
   enrollInCourse,
-  completeEnrollment,
+  // completeEnrollment,
   getUserEnrollments,
   getEnrollmentDetails,
   markLessonCompleted,

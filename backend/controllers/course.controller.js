@@ -1,6 +1,7 @@
 const Course = require("../models/course.model");
 const CourseCategory = require("../models/courseCategory.model");
 const mongoose = require("mongoose");
+const Enrollment = require("../models/enrollment.model");
 
 const getAllCourses = async (req, res) => {
   try {
@@ -95,6 +96,105 @@ const getAllCourses = async (req, res) => {
   } catch (err) {
     console.error("Error fetching courses:", err);
     res.status(500).json({ error: "Server error while fetching courses" });
+  }
+};
+
+const getMyEnrolledCourses = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      category,
+      sortBy = "createdAt", // course createdAt
+      sortOrder = "desc",
+    } = req.query;
+
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: user not found" });
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Enrollment query (only user’s enrollments)
+    const enrollmentQuery = { user: userId };
+
+    // Populate course with filters
+    let courseMatch = {};
+
+    // Search by title/description/tags
+    if (search) {
+      courseMatch.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { tags: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Category filter
+    if (category) {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        courseMatch.category = category;
+      } else {
+        const categoryDoc = await CourseCategory.findOne({
+          $or: [
+            { slug: category },
+            { name: { $regex: category, $options: "i" } },
+          ],
+        });
+        if (categoryDoc) {
+          courseMatch.category = categoryDoc._id;
+        }
+      }
+    }
+
+    // Sorting
+    const sort = {};
+    if (sortBy === "rating") {
+      sort["course.rating.average"] = sortOrder === "asc" ? 1 : -1;
+    } else {
+      sort[`course.${sortBy}`] = sortOrder === "asc" ? 1 : -1;
+    }
+
+    // Get enrollments with populated courses
+    const enrollments = await Enrollment.find(enrollmentQuery)
+      .populate({
+        path: "course",
+        match: courseMatch, // apply filters inside course
+        select:
+          "title slug description thumbnail price discountPrice isFree rating category instructor",
+        populate: [
+          { path: "category", select: "name slug icon" },
+          { path: "instructor", select: "name email" },
+        ],
+      })
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Filter out enrollments where course didn't match filters
+    const validEnrollments = enrollments.filter((e) => e.course);
+
+    // Total count
+    const total = await Enrollment.countDocuments(enrollmentQuery);
+
+    res.status(200).json({
+      enrolledCourses: validEnrollments,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching enrolled courses:", err);
+    res
+      .status(500)
+      .json({ error: "Server error while fetching enrolled courses" });
   }
 };
 
@@ -373,4 +473,5 @@ module.exports = {
   togglePublishCourse,
   getPublishedCourses,
   getCoursesByCategory,
+  getMyEnrolledCourses,
 };

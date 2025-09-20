@@ -16,10 +16,12 @@ import {
   BarChart3,
   Users,
   PlayCircle,
+  Book,
 } from "lucide-react";
 import { brandName } from "@/app/contants";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/lib/store/features/authSlice";
+import Link from "next/link";
 
 const UserNavbar = () => {
   const {
@@ -52,16 +54,18 @@ const UserNavbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="flex-shrink-0 flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <GraduationCap className="h-6 w-6 text-white" />
+          <Link href={"/user/dashboard"}>
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0 flex items-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                <span className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {brandName}
+                </span>
               </div>
-              <span className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {brandName}
-              </span>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
@@ -157,6 +161,9 @@ const UserNavbar = () => {
                     </p>
                   </div>
                   <ProfileMenuItem icon={User} text="Profile" />
+                  <Link href={"/user/mycourses"}>
+                    <ProfileMenuItem icon={Book} text="My Courses" />
+                  </Link>
                   <ProfileMenuItem icon={Settings} text="Settings" />
                   <ProfileMenuItem icon={Award} text="Certificates" />
                   <div className="border-t border-gray-100 mt-2 pt-2">

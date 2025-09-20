@@ -17,6 +17,20 @@ export const getAllCourses = createAsyncThunk(
   }
 );
 
+export const getMyEnrolledCourses = createAsyncThunk(
+  "course/getMyEnrolledCourses",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await courseService.getEnrolledCourses();
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch courses"
+      );
+    }
+  }
+);
+
 export const createCourse = createAsyncThunk(
   "course/createCourse",
   async (courseData, { rejectWithValue }) => {
@@ -118,6 +132,7 @@ export const togglePublishCourse = createAsyncThunk(
 
 const initialState = {
   courses: [],
+  myEnrolledcourses: [],
   publishedCourses: [],
   currentCourse: null,
   status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
@@ -193,7 +208,33 @@ const courseSlice = createSlice({
         state.createStatus = "failed";
         state.error = action.payload;
       })
+      .addCase(getMyEnrolledCourses.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(getMyEnrolledCourses.fulfilled, (state, action) => {
+        state.status = "succeeded";
 
+        // store the array of enrolled courses
+        state.myEnrolledcourses = action.payload.enrolledCourses || [];
+
+        // store pagination info
+        state.pagination = {
+          currentPage: action.payload.pagination?.page || 1,
+          totalPages: action.payload.pagination?.totalPages || 1,
+          hasNext:
+            action.payload.pagination?.page <
+            action.payload.pagination?.totalPages,
+          hasPrev: action.payload.pagination?.page > 1,
+        };
+
+        state.error = null;
+      })
+
+      .addCase(getMyEnrolledCourses.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
       // Get Published Courses
       .addCase(getPublishedCourses.pending, (state) => {
         state.status = "loading";

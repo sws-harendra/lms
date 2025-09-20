@@ -6,6 +6,12 @@ const { authenticateToken } = require("../middlewares/user.auth");
 
 // GET /api/courses?category=webdev&minRating=3.5&sortBy=rating&sortOrder=desc
 router.get("/", courseController.getAllCourses);
+router.get(
+  "/my-enrolled-courses",
+  authenticateToken,
+  courseController.getMyEnrolledCourses
+);
+
 router.post(
   "/add-course",
   authenticateToken,

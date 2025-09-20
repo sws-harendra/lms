@@ -1,3 +1,4 @@
+import UserNavbar from "@/components/UsersNavbar";
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({
@@ -16,5 +17,11 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return <main>{children}</main>;
+  return (
+    <main>
+      {" "}
+      <UserNavbar />
+      {children}
+    </main>
+  );
 }
