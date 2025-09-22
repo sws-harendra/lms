@@ -30,12 +30,11 @@ export const getMyEnrolledCourses = createAsyncThunk(
     }
   }
 );
-
 export const createCourse = createAsyncThunk(
   "course/createCourse",
-  async (courseData, { rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      const response = await courseService.createCourse(courseData);
+      const response = await courseService.createCourse(formData);
       return response;
     } catch (error) {
       return rejectWithValue(

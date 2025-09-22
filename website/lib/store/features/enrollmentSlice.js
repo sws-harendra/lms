@@ -208,6 +208,7 @@ const enrollmentSlice = createSlice({
       .addCase(markLessonCompleted.fulfilled, (state, action) => {
         state.lessonStatus = "succeeded";
         if (state.currentEnrollment) {
+          console.log("=-=>", action.payload);
           state.currentEnrollment.progress = action.payload.progress;
         }
         state.error = null;

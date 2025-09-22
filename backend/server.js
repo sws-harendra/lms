@@ -9,7 +9,7 @@ const cors = require("cors");
 const seedRoles = require("./config/seedRole");
 const seedCourseCategory = require("./config/seedCategory");
 const app = express();
-
+const path = require("path");
 app.use(
   cors({
     origin: process.env.CLIENT_URL, // or your frontend URL
@@ -36,6 +36,7 @@ mongoose
 
 // all routs in route folder
 app.use("/api", routes); // All routes prefixed with /api
+app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => {
   res.json("hello from lms backend");

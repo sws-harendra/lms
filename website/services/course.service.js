@@ -27,7 +27,15 @@ export const courseService = {
 
   // Create course (requires authentication and permission)
   createCourse: async (courseData) => {
-    const response = await axiosInstance.post("/course", courseData);
+    const response = await axiosInstance.post(
+      "/course/add-course",
+      courseData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data;
   },
 

@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 const CourseCard = ({ course }) => {
   const {
@@ -36,7 +37,6 @@ const CourseCard = ({ course }) => {
   };
 
   // Default thumbnail if none provided
-  const defaultThumbnail = "/images/default-course.jpg";
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
@@ -45,7 +45,7 @@ const CourseCard = ({ course }) => {
           {/* Course Thumbnail */}
           <div className="relative h-48 w-full">
             <Image
-              src={thumbnail || defaultThumbnail}
+              src={getMediaUrl(thumbnail)}
               alt={title}
               unoptimized
               fill

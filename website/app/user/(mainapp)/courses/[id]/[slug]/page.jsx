@@ -39,7 +39,7 @@ import {
   enrollInCourse,
 } from "@/lib/store/features/enrollmentSlice";
 import { toast } from "sonner";
-// import PaymentModal from "@/app/user/components/paymentModal";
+import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 const CourseById = () => {
   const { id } = useParams();
@@ -47,6 +47,7 @@ const CourseById = () => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const router = useRouter();
   const { currentCourse, status, error } = useSelector((state) => state.course);
+  const { courseAccess } = useSelector((state) => state.enrollment);
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
   const [isEnrolling, setIsEnrolling] = useState(false);
 
@@ -56,11 +57,12 @@ const CourseById = () => {
   useEffect(() => {
     dispatch(getCourseById(id));
   }, [dispatch, id]);
-  // useEffect(() => {
-  //   if (isAuthenticated && currentCourse) {
-  //     dispatch(checkCourseAccess(id));
-  //   }
-  // }, [dispatch, id, isAuthenticated, currentCourse]);
+
+  useEffect(() => {
+    if (isAuthenticated && currentCourse) {
+      dispatch(checkCourseAccess(id));
+    }
+  }, [dispatch, id, isAuthenticated, currentCourse]);
 
   // Function to handle lesson click
   const handleLessonClick = (lesson) => {
@@ -77,10 +79,17 @@ const CourseById = () => {
       }
     }
   };
+
   const handleEnrollment = async () => {
     if (!isAuthenticated) {
       toast.error("Please login to enroll in the course");
       router.push("/user/login");
+      return;
+    }
+
+    // If already enrolled, redirect to learning page
+    if (courseAccess?.hasAccess) {
+      router.push(`/user/mycourses/learning/${id}`);
       return;
     }
 
@@ -91,8 +100,6 @@ const CourseById = () => {
       const enrollmentData = {
         paymentMethod:
           currentCourse.isFree || currentCourse.price === 0 ? "free" : "stripe",
-
-        // For now: send a static transactionId to simulate completed payment
         transactionId:
           currentCourse.isFree || currentCourse.price === 0
             ? undefined
@@ -100,7 +107,7 @@ const CourseById = () => {
         paymentStatus:
           currentCourse.isFree || currentCourse.price === 0
             ? "completed"
-            : "completed", // always completed for now
+            : "completed",
       };
 
       const result = await dispatch(
@@ -111,8 +118,7 @@ const CourseById = () => {
       ).unwrap();
 
       toast.success("Successfully enrolled in the course!");
-      await router.push("/user/mycourses");
-      dispatch(checkCourseAccess(id));
+      router.push(`/user/mycourses/learning/${id}`);
     } catch (error) {
       toast.error(error.message || "Failed to enroll in course");
     } finally {
@@ -120,82 +126,41 @@ const CourseById = () => {
     }
   };
 
-  // Handle payment (placeholder for payment integration)
-  const handlePayment = (paymentData) => {
-    // This is where you'd integrate with your payment provider
-    console.log("Payment data:", paymentData);
-
-    // For demo purposes, simulate successful payment
-    setTimeout(() => {
-      toast.success("Payment successful! You are now enrolled.");
-      dispatch(checkCourseAccess(id));
-    }, 2000);
-  };
-
   // Get enrollment button text and state
-  // const getEnrollmentButtonProps = () => {
-  //   if (!isAuthenticated) {
-  //     return {
-  //       text: "Login to Enroll",
-  //       disabled: false,
-  //       variant: "default",
-  //     };
-  //   }
+  const getEnrollmentButtonProps = () => {
+    if (!isAuthenticated) {
+      return {
+        text: "Login to Enroll",
+        disabled: false,
+        variant: "default",
+        onClick: () => router.push("/user/login"),
+      };
+    }
 
-  //   if (accessStatus === "loading") {
-  //     return {
-  //       text: "Checking Access...",
-  //       disabled: true,
-  //       variant: "default",
-  //     };
-  //   }
+    if (courseAccess?.hasAccess) {
+      return {
+        text: "Already Enrolled - Start Learning",
+        disabled: false,
+        variant: "secondary",
+        onClick: () => router.push(`/user/mycourses/learning/${id}`),
+      };
+    }
 
-  //   if (courseAccess?.hasAccess) {
-  //     return {
-  //       text: "Already Enrolled",
-  //       disabled: true,
-  //       variant: "secondary",
-  //     };
-  //   }
+    if (currentCourse?.isFree || currentCourse?.price === 0) {
+      return {
+        text: isEnrolling ? "Enrolling..." : "Enroll for Free",
+        disabled: isEnrolling,
+        variant: "default",
+        onClick: handleEnrollment,
+      };
+    }
 
-  //   if (currentCourse?.isFree || currentCourse?.price === 0) {
-  //     return {
-  //       text: isEnrolling ? "Enrolling..." : "Enroll for Free",
-  //       disabled: isEnrolling,
-  //       variant: "default",
-  //     };
-  //   }
-
-  //   return {
-  //     text: isEnrolling ? "Processing..." : "Enroll Now",
-  //     disabled: isEnrolling,
-  //     variant: "default",
-  //   };
-  // };
-  const handleDemoPayment = async () => {
-    // Simulate payment processing
-    setTimeout(async () => {
-      try {
-        await dispatch(
-          completeEnrollment({
-            paymentId: paymentData.paymentId,
-            transactionId: `demo_${Date.now()}`,
-            metadata: {
-              demo: true,
-              amount: course.discountPrice || course.price,
-            },
-          })
-        ).unwrap();
-
-        toast.success("Demo payment successful! You are now enrolled.");
-        onSuccess();
-        onClose();
-      } catch (error) {
-        toast.error("Enrollment failed. Please try again.");
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 2000);
+    return {
+      text: isEnrolling ? "Processing..." : "Enroll Now",
+      disabled: isEnrolling,
+      variant: "default",
+      onClick: handleEnrollment,
+    };
   };
 
   if (status === "loading") return <Spinner />;
@@ -210,20 +175,7 @@ const CourseById = () => {
       <div className="text-center py-10 font-medium">Course not found</div>
     );
 
-  // const buttonProps = getEnrollmentButtonProps();
-
-  if (status === "loading") return <Spinner />;
-  if (status === "failed")
-    return (
-      <div className="text-center py-10 text-red-600 font-semibold">
-        Error: {error}
-      </div>
-    );
-  if (!currentCourse)
-    return (
-      <div className="text-center py-10 font-medium">Course not found</div>
-    );
-
+  const buttonProps = getEnrollmentButtonProps();
   const formatDuration = (minutes) => {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -254,6 +206,11 @@ const CourseById = () => {
                 {currentCourse.isPublished && (
                   <Badge className="flex items-center gap-1">
                     <CheckCircle className="h-3 w-3" /> Published
+                  </Badge>
+                )}
+                {courseAccess?.hasAccess && (
+                  <Badge className="bg-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" /> Already Enrolled
                   </Badge>
                 )}
               </div>
@@ -288,7 +245,7 @@ const CourseById = () => {
             >
               {previewVideoUrl ? (
                 <VideoPlayer
-                  url={previewVideoUrl}
+                  url={getMediaUrl(previewVideoUrl)}
                   title={currentCourse.title}
                 />
               ) : (
@@ -296,11 +253,10 @@ const CourseById = () => {
                   <Image
                     unoptimized
                     fill
-                    src={currentCourse.thumbnail}
+                    src={getMediaUrl(currentCourse.thumbnail)}
                     alt={currentCourse.title}
                     className="object-cover"
                   />
-                  {/* Add overlay text to indicate no video selected */}
                 </div>
               )}
             </div>
@@ -355,18 +311,20 @@ const CourseById = () => {
                             className={`flex items-center justify-between px-2 py-2 rounded transition-colors ${
                               lesson.isFree
                                 ? "hover:bg-green-50 cursor-pointer"
+                                : courseAccess?.hasAccess
+                                ? "hover:bg-muted/40 cursor-pointer"
                                 : "hover:bg-muted/40 cursor-not-allowed"
                             }`}
                           >
                             <div className="flex items-center gap-2">
-                              {lesson.isFree ? (
+                              {lesson.isFree || courseAccess?.hasAccess ? (
                                 <PlayCircle className="text-green-500 h-4 w-4" />
                               ) : (
                                 <Lock className="text-muted-foreground h-4 w-4" />
                               )}
                               <span
                                 className={`text-sm ${
-                                  lesson.isFree
+                                  lesson.isFree || courseAccess?.hasAccess
                                     ? "text-green-700 font-medium"
                                     : ""
                                 }`}
@@ -444,8 +402,14 @@ const CourseById = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button onClick={handleEnrollment} size="lg" className="w-full">
-                  Enroll Now
+                <Button
+                  onClick={buttonProps.onClick}
+                  disabled={buttonProps.disabled}
+                  variant={buttonProps.variant}
+                  size="lg"
+                  className="w-full"
+                >
+                  {buttonProps.text}
                 </Button>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
@@ -493,13 +457,6 @@ const CourseById = () => {
                 </div>
               </CardContent>
             </Card>
-            {/* <PaymentModal
-              isOpen={showPaymentModal}
-              onClose={() => setShowPaymentModal(false)}
-              course={currentCourse}
-              paymentData={paymentData}
-              onSuccess={handlePaymentSuccess}
-            /> */}
           </div>
         </div>
       </div>

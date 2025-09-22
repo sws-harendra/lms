@@ -259,7 +259,7 @@ const markLessonCompleted = async (req, res) => {
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
       user: userId,
-      status: "active",
+      // status: "active",
     });
 
     if (!enrollment) {
