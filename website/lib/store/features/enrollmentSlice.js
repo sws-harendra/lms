@@ -68,6 +68,7 @@ export const getEnrollmentDetails = createAsyncThunk(
 export const markLessonCompleted = createAsyncThunk(
   "enrollment/markLessonCompleted",
   async ({ enrollmentId, lessonData }, { rejectWithValue }) => {
+    console.log(enrollmentId, lessonData);
     try {
       const response = await enrollmentService.markLessonCompleted(
         enrollmentId,

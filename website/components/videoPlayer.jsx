@@ -1,20 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { PlayCircle } from "lucide-react";
 
-export const VideoPlayer = ({ url, title }) => {
+/**
+ * VideoPlayer
+ * @param {string} url - video URL (YouTube or direct)
+ * @param {string} title - video title
+ * @param {boolean} trackProgress - track lesson completion
+ * @param {function} onComplete - callback when video completes
+ */
+export const VideoPlayer = ({
+  url,
+  title,
+  trackProgress = false,
+  onComplete,
+}) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef(null);
 
-  // Get YouTube embed URL
+  // --- Detect YouTube ---
   const getYouTubeEmbedUrl = (url) => {
     try {
       let videoId;
-      if (url.includes("youtu.be/")) {
+      if (url.includes("youtu.be/"))
         videoId = url.split("youtu.be/")[1].split("?")[0];
-      } else if (url.includes("youtube.com/watch?v=")) {
+      else if (url.includes("youtube.com/watch?v="))
         videoId = url.split("v=")[1].split("&")[0];
-      }
 
       if (videoId) {
         return {
@@ -33,9 +45,14 @@ export const VideoPlayer = ({ url, title }) => {
   const isYouTube = !!videoInfo;
   const embedUrl = videoInfo?.embedUrl;
   const videoId = videoInfo?.videoId;
-
   const isDirectVideo =
     !isYouTube && /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
+
+  // --- Event handler ---
+  const handleEnded = () => {
+    console.log("hjiiii-====> end");
+    if (trackProgress && onComplete) onComplete();
+  };
 
   return (
     <div className="relative rounded-xl overflow-hidden shadow-lg aspect-video bg-muted group">
@@ -50,12 +67,9 @@ export const VideoPlayer = ({ url, title }) => {
 
           {isYouTube ? (
             <img
-              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+              src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
               alt={title || "Video thumbnail"}
               className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-              }}
             />
           ) : (
             <video
@@ -86,9 +100,11 @@ export const VideoPlayer = ({ url, title }) => {
             />
           ) : isDirectVideo ? (
             <video
+              ref={videoRef}
               controls
               autoPlay
               controlsList="nodownload"
+              onEnded={handleEnded}
               style={{
                 position: "absolute",
                 top: 0,

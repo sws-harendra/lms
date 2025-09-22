@@ -235,7 +235,7 @@ const getEnrollmentDetails = async (req, res) => {
     });
 
     if (!enrollment) {
-      return res.status(404).json({ message: "Enrollment not found" });
+      return res.status(401).json({ message: "Enrollment not found" });
     }
 
     // Calculate current progress
