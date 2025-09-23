@@ -10,12 +10,13 @@ const seedRoles = require("./config/seedRole");
 const seedCourseCategory = require("./config/seedCategory");
 const app = express();
 const path = require("path");
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL, // or your frontend URL
-    credentials: true, // allow sending cookies/headers
-  })
-);
+app.use(cors());
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL, // or your frontend URL
+//     credentials: true, // allow sending cookies/headers
+//   })
+// );
 app.use(express.json());
 app.use(cookieParser());
 const mongoURI = process.env.MONGO_URI;
