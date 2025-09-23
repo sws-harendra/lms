@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +27,20 @@ import {
   FileText,
   GripVertical,
 } from "lucide-react";
-import { createCourse } from "@/lib/store/features/courseSlice";
-import { useDispatch } from "react-redux";
+import {
+  createCourse,
+  getAllCategories,
+} from "@/lib/store/features/courseSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function EnhancedCourseForm() {
   const dispatch = useDispatch();
+  const { categories, status } = useSelector((state) => state.course);
+  let isLoading = status == "loading";
+  useEffect(() => {
+    // Fetch categories from backend if not already loaded
+    dispatch(getAllCategories());
+  }, []); // dispatch(fetchCategories());
   // Basic course info
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -302,7 +311,7 @@ export default function EnhancedCourseForm() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
@@ -365,10 +374,15 @@ export default function EnhancedCourseForm() {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="programming">Programming</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat._id} value={cat._id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                        {/* <SelectItem value="programming">Programming</SelectItem>
                         <SelectItem value="design">Design</SelectItem>
                         <SelectItem value="business">Business</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem> */}
                       </SelectContent>
                     </Select>
                   </div>

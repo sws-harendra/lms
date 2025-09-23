@@ -17,6 +17,20 @@ export const getAllCourses = createAsyncThunk(
   }
 );
 
+export const getAllCategories = createAsyncThunk(
+  "course/getAllCategories",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await courseService.getAllCategories();
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch courses"
+      );
+    }
+  }
+);
+
 export const getMyEnrolledCourses = createAsyncThunk(
   "course/getMyEnrolledCourses",
   async (_, { rejectWithValue }) => {
@@ -134,6 +148,7 @@ const initialState = {
   myEnrolledcourses: [],
   publishedCourses: [],
   currentCourse: null,
+  categories: [],
   status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
   createStatus: "idle",
   updateStatus: "idle",
@@ -350,7 +365,21 @@ const courseSlice = createSlice({
         state.deleteStatus = "failed";
         state.error = action.payload;
       })
+      .addCase(getAllCategories.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
 
+      .addCase(getAllCategories.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.categories = action.payload.categories || action.payload;
+        state.error = null;
+      })
+
+      .addCase(getAllCategories.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
       // Toggle Publish Course
       .addCase(togglePublishCourse.pending, (state) => {
         state.publishStatus = "loading";

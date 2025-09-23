@@ -11,7 +11,7 @@ export default function Home() {
     user,
   } = useSelector((state) => state.auth);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-full bg-gray-50">
       <Courses />
 
       {/* <div className="container mx-auto px-4 py-8">

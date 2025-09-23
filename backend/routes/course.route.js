@@ -7,6 +7,9 @@ const { upload } = require("../helpers/multer");
 
 // GET /api/courses?category=webdev&minRating=3.5&sortBy=rating&sortOrder=desc
 router.get("/", courseController.getAllCourses);
+
+router.get("/all-categories", courseController.getAllCategories);
+
 router.get(
   "/my-enrolled-courses",
   authenticateToken,
@@ -23,12 +26,12 @@ router.post(
   courseController.createCourse
 );
 
-router.post(
-  "/add-course",
-  authenticateToken,
-  authorizePermission("create_course"),
-  courseController.createCourse
-);
+// router.post(
+//   "/add-course",
+//   authenticateToken,
+//   authorizePermission("create_course"),
+//   courseController.createCourse
+// );
 
 router.get("/published", courseController.getPublishedCourses);
 router.get("/slug/:slug", courseController.getCourseBySlug);

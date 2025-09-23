@@ -478,6 +478,15 @@ const getCoursesByCategory = async (req, res) => {
   }
 };
 
+const getAllCategories = async (req, res) => {
+  try {
+    const categoryList = await CourseCategory.find().sort({ name: 1 });
+    res.status(200).json({ categories: categoryList });
+  } catch (err) {
+    console.error("Error fetching categories:", err);
+    res.status(500).json({ error: "Server error while fetching categories" });
+  }
+};
 module.exports = {
   getAllCourses,
   createCourse,
@@ -489,4 +498,5 @@ module.exports = {
   getPublishedCourses,
   getCoursesByCategory,
   getMyEnrolledCourses,
+  getAllCategories,
 };
