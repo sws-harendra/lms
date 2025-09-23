@@ -40,6 +40,13 @@ export const authService = {
     const response = await axiosInstance.get("/user/userdetails");
     return response.data;
   },
+  updateUserProfile: async (profileData) => {
+    const response = await axiosInstance.put(
+      "/user/updateprofile",
+      profileData
+    );
+    return response.data.user;
+  },
 
   // Logout
   logout: async () => {

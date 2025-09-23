@@ -487,6 +487,77 @@ const getAllCategories = async (req, res) => {
     res.status(500).json({ error: "Server error while fetching categories" });
   }
 };
+
+const getallcoursesforpublisher = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: user not found" });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+
+    const query = {
+      instructor: new mongoose.Types.ObjectId(userId),
+      title: { $regex: search, $options: "i" },
+    };
+
+    const courses = await Course.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: "enrollments",
+          localField: "_id",
+          foreignField: "course",
+          as: "enrollments",
+        },
+      },
+      {
+        $addFields: {
+          enrolledNumbers: { $size: "$enrollments" },
+        },
+      },
+      {
+        $lookup: {
+          from: "coursecategories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryData",
+        },
+      },
+      { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          title: 1,
+          price: 1,
+          visibility: {
+            $cond: { if: "$isPublished", then: "Published", else: "Draft" },
+          },
+          enrolledNumbers: 1,
+          category: "$categoryData.name",
+        },
+      },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+    ]);
+
+    const total = await Course.countDocuments(query);
+
+    res.status(200).json({
+      courses,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching courses for publisher:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 module.exports = {
   getAllCourses,
   createCourse,
@@ -499,4 +570,5 @@ module.exports = {
   getCoursesByCategory,
   getMyEnrolledCourses,
   getAllCategories,
+  getallcoursesforpublisher,
 };

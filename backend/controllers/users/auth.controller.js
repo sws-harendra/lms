@@ -511,6 +511,48 @@ const logout = async (req, res) => {
     res.json({ message: "Logged out successfully" });
   }
 };
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID missing" });
+    }
+
+    // Allowed fields to update
+    const allowedUpdates = [
+      "name",
+      "phone",
+      "email",
+      "shortBio",
+      "location",
+      "social",
+      "skills",
+      "designation",
+      "experience",
+    ];
+
+    const updates = {};
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    const user = await User.findByIdAndUpdate(userId, updates, {
+      new: true,
+    }).select("-password -sessions -otpCode -otpExpiry");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully", user });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 module.exports = {
   emailloginController,
@@ -525,4 +567,5 @@ module.exports = {
   resendEmailVerification,
   resendOtpToPhone,
   logout,
+  updateProfile,
 };

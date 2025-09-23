@@ -310,6 +310,83 @@ const checkCourseAccess = async (req, res) => {
   }
 };
 
+// Example commission rate (you can adjust)
+const COMMISSION_RATE = 0.1; // 10%
+
+const getEnrollmentandEarning = async (req, res) => {
+  try {
+    const userId = req.user.id; // Logged-in user (publisher)
+    const { status, page = 1, limit = 10, search = "" } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Filter enrollments
+    let filter = {};
+    if (status) filter.status = status;
+
+    // Populate user and course
+    const enrollments = await Enrollment.find(filter)
+      .populate({
+        path: "user",
+        select: "name email",
+        match: { name: { $regex: search, $options: "i" } }, // optional search
+      })
+      .populate({
+        path: "course",
+        select: "title price",
+      })
+      .sort({ enrollmentDate: -1 })
+      .skip(parseInt(skip))
+      .limit(parseInt(limit));
+
+    // Filter out enrollments where user doesn't match search
+    const filteredEnrollments = enrollments.filter((e) => e.user);
+
+    // Calculate totals
+    let totalEarnings = 0;
+    let totalRevenue = 0;
+    let totalCommission = 0;
+
+    const data = filteredEnrollments.map((enrollment, index) => {
+      const amount = enrollment.payment?.amount || 0;
+      const commission = parseFloat((amount * COMMISSION_RATE).toFixed(2));
+      const revenue = parseFloat((amount - commission).toFixed(2));
+
+      totalEarnings += amount;
+      totalRevenue += revenue;
+      totalCommission += commission;
+
+      return {
+        serial: index + 1 + skip,
+        invoice: `${enrollment._id}`,
+        student: enrollment.user.name,
+        course: enrollment.course,
+        date: enrollment.enrollmentDate.toLocaleDateString("en-US", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        paymentStatus: enrollment.payment?.paymentStatus || "Pending",
+        totalAmount: `$${amount.toFixed(2)}`,
+        revenue: `$${revenue.toFixed(2)}`,
+        commission: `$${commission.toFixed(2)}`,
+      };
+    });
+
+    res.json({
+      totalEarnings: `$${totalEarnings.toFixed(2)}`,
+      netEarnings: `$${(totalEarnings - totalCommission).toFixed(2)}`,
+      availableBalance: `$${totalRevenue.toFixed(2)}`,
+      enrollments: data,
+      totalRecords: filteredEnrollments.length,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+};
+
 module.exports = {
   enrollInCourse,
   // completeEnrollment,
@@ -317,4 +394,5 @@ module.exports = {
   getEnrollmentDetails,
   markLessonCompleted,
   checkCourseAccess,
+  getEnrollmentandEarning,
 };

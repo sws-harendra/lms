@@ -96,6 +96,23 @@ export const checkCourseAccess = createAsyncThunk(
     }
   }
 );
+export const getAllEnrollmentsForPublisher = createAsyncThunk(
+  "enrollment/getAllEnrollmentsForPublisher",
+  async ({ page = 1, limit = 10, search = "" }, { rejectWithValue }) => {
+    try {
+      const response = await enrollmentService.getAllEnrollmentsForPublisher(
+        page,
+        limit,
+        search
+      );
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch enrollments"
+      );
+    }
+  }
+);
 
 const initialState = {
   enrollments: [],
@@ -111,6 +128,12 @@ const initialState = {
     pages: 1,
     total: 0,
   },
+  totalEarnings: 0,
+  netEarnings: 0,
+  availableBalance: 0,
+  totalRecords: 0,
+  page: 1,
+  limit: 10,
 };
 
 const enrollmentSlice = createSlice({
@@ -230,6 +253,27 @@ const enrollmentSlice = createSlice({
       })
       .addCase(checkCourseAccess.rejected, (state, action) => {
         state.accessStatus = "failed";
+        state.error = action.payload;
+      });
+    builder
+
+      .addCase(getAllEnrollmentsForPublisher.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(getAllEnrollmentsForPublisher.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.enrollments = action.payload.enrollments;
+        state.totalEarnings = action.payload.totalEarnings;
+        state.netEarnings = action.payload.netEarnings;
+        state.availableBalance = action.payload.availableBalance;
+        state.totalRecords = action.payload.totalRecords;
+        state.page = action.payload.page;
+        state.limit = action.payload.limit;
+        state.error = null;
+      })
+      .addCase(getAllEnrollmentsForPublisher.rejected, (state, action) => {
+        state.status = "failed";
         state.error = action.payload;
       });
   },

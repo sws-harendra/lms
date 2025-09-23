@@ -79,4 +79,10 @@ export const courseService = {
     const response = await axiosInstance.patch(`/course/toggle-publish/${id}`);
     return response.data;
   },
+  getAllCoursesForPublisher: async (page = 1, limit = 10, search = "") => {
+    const response = await axiosInstance.get(
+      `/course/get-all-courses-for-publisher?page=${page}&limit=${limit}&search=${search}`
+    );
+    return response.data;
+  },
 };

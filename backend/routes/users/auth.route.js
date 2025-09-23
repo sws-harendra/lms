@@ -12,5 +12,5 @@ router.post("/resendOtp", auth.resendOtpToPhone);
 router.get("/userdetails", authenticateToken, auth.userdetail);
 router.post("/refreshtoken", auth.refreshToken);
 router.post("/logout", authenticateToken, auth.logout);
-
+router.put("/updateprofile", authenticateToken, auth.updateProfile);
 module.exports = router;

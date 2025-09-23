@@ -1,29 +1,50 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-  email: String,
-  password: String,
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
   phone: { type: String, unique: true, sparse: true },
-  name: String,
+  name: { type: String, required: true },
   role: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Role",
-    default: null, // We'll set this programmatically
+    default: null,
   },
   maxDevices: { type: Number, default: 2 },
-  isVerified: Boolean,
-  // Add OTP fields that are being used in auth controller
+  isVerified: { type: Boolean, default: false },
   otpCode: String,
   otpExpiry: Date,
-
   sessions: [
     {
       refreshToken: String,
       createdAt: { type: Date, default: Date.now },
-      userAgent: String, // for browser/device info
+      userAgent: String,
       ip: String,
     },
   ],
+
+  // New profile fields
+  designation: { type: String, default: "" },
+  experience: { type: Number, default: 0 }, // in years
+  shortBio: { type: String, default: "" },
+  skills: [
+    {
+      name: String,
+      expertise: Number, // percentage
+    },
+  ],
+  location: {
+    country: { type: String, default: "" },
+    state: { type: String, default: "" },
+    city: { type: String, default: "" },
+    address: { type: String, default: "" },
+  },
+  social: {
+    facebook: { type: String, default: "" },
+    linkedin: { type: String, default: "" },
+    twitter: { type: String, default: "" },
+    instagram: { type: String, default: "" },
+  },
 });
 
 // Pre-save middleware to set default role if none provided

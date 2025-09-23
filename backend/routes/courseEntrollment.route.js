@@ -7,8 +7,10 @@ const {
   getEnrollmentDetails,
   markLessonCompleted,
   checkCourseAccess,
+  getEnrollmentandEarning,
 } = require("../controllers/courseEnrollment.controller");
 const { authenticateToken } = require("../middlewares/user.auth");
+router.get("/myearning", authenticateToken, getEnrollmentandEarning);
 
 // Enrollment routes
 router.post("/enroll/:courseId", authenticateToken, enrollInCourse);

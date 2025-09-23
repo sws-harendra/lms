@@ -19,4 +19,5 @@ export const store = configureStore({
     // admin: adminReducer,
     // common: commonReducer,
   },
+  devTools: process.env.NEXT_PUBLIC_NODE_ENV !== "production", // ✅ disable in prod
 });

@@ -33,6 +33,12 @@ router.post(
 //   courseController.createCourse
 // );
 
+router.get(
+  "/get-all-courses-for-publisher",
+  authenticateToken,
+  courseController.getallcoursesforpublisher
+);
+
 router.get("/published", courseController.getPublishedCourses);
 router.get("/slug/:slug", courseController.getCourseBySlug);
 router.get("/:id", courseController.getCourseById);

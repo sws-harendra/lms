@@ -19,6 +19,9 @@ import {
   Star,
   ChartNoAxesGanttIcon,
   ChevronDown,
+  Coins,
+  PersonStanding,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,13 +36,20 @@ const menuItems = [
     name: "Courses",
     icon: Package,
     children: [
-      { name: "My Courses", href: "/instructor/dashboard/courses" },
+      { name: "My Courses", href: "/instructor/dashboard/courses/my-courses" },
       {
         name: "Create Course",
         href: "/instructor/dashboard/courses/add-course",
       },
     ],
   },
+  { name: "My Earning", icon: Coins, href: "/instructor/dashboard/earning" },
+  {
+    name: "Profile",
+    icon: User,
+    href: "/instructor/dashboard/profile",
+  },
+
   {
     name: "Orders",
     icon: ShoppingBag,

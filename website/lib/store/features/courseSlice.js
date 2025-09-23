@@ -143,6 +143,24 @@ export const togglePublishCourse = createAsyncThunk(
   }
 );
 
+export const getAllCoursesForPublisher = createAsyncThunk(
+  "course/getAllCoursesForPublisher",
+  async ({ page = 1, limit = 10, search = "" }, { rejectWithValue }) => {
+    try {
+      const response = await courseService.getAllCoursesForPublisher(
+        page,
+        limit,
+        search
+      );
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch courses for publisher"
+      );
+    }
+  }
+);
+
 const initialState = {
   courses: [],
   myEnrolledcourses: [],
@@ -358,7 +376,12 @@ const courseSlice = createSlice({
           state.currentCourse = null;
         }
 
+        // Update totals
         state.totalCourses = Math.max(0, state.totalCourses - 1);
+        if (state.pagination?.total) {
+          state.pagination.total = Math.max(0, state.pagination.total - 1);
+        }
+
         state.error = null;
       })
       .addCase(deleteCourse.rejected, (state, action) => {
@@ -431,6 +454,27 @@ const courseSlice = createSlice({
       })
       .addCase(togglePublishCourse.rejected, (state, action) => {
         state.publishStatus = "failed";
+        state.error = action.payload;
+      });
+
+    // Get All Courses for Publisher
+
+    builder
+      .addCase(getAllCoursesForPublisher.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(getAllCoursesForPublisher.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.courses = action.payload.courses || action.payload;
+        state.totalCourses = action.payload.total || action.payload.length;
+        if (action.payload.pagination) {
+          state.pagination = action.payload.pagination;
+        }
+        state.error = null;
+      })
+      .addCase(getAllCoursesForPublisher.rejected, (state, action) => {
+        state.status = "failed";
         state.error = action.payload;
       });
   },

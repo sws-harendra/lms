@@ -48,4 +48,10 @@ export const enrollmentService = {
     const response = await axiosInstance.get(`/enrollment/access/${courseId}`);
     return response.data;
   },
+  getAllEnrollmentsForPublisher: async (page = 1, limit = 10, search = "") => {
+    const response = await axiosInstance.get(
+      `/enrollment/myearning?page=${page}&limit=${limit}&search=${search}`
+    );
+    return response.data;
+  },
 };

@@ -101,6 +101,16 @@ export const logout = createAsyncThunk(
   }
 );
 
+export const updateUserProfile = createAsyncThunk(
+  "user/updateProfile",
+  async (profileData, thunkAPI) => {
+    try {
+      return await authService.updateUserProfile(profileData);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 const initialState = {
   user: null,
   isAuthenticated: false,
@@ -238,6 +248,19 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.registerStatus = "failed";
+        state.error = action.payload;
+      })
+
+      .addCase(updateUserProfile.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.success = true;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload;
       });
   },
