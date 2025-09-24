@@ -50,14 +50,14 @@ const menuItems = [
     href: "/instructor/dashboard/profile",
   },
 
-  {
-    name: "Orders",
-    icon: ShoppingBag,
-    children: [
-      { name: "All Orders", href: "/instructor/orders" },
-      { name: "Refunds", href: "/instructor/orders/refunds" },
-    ],
-  },
+  // {
+  //   name: "Orders",
+  //   icon: ShoppingBag,
+  //   children: [
+  //     { name: "All Orders", href: "/instructor/orders" },
+  //     { name: "Refunds", href: "/instructor/orders/refunds" },
+  //   ],
+  // },
   { name: "Users", icon: Users, href: "/instructor/users" },
   {
     name: "Logout",
