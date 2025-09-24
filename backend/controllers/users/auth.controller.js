@@ -7,6 +7,8 @@ const {
   generateRefreshToken,
 } = require("../../helpers/jwtToken");
 const sendMail = require("../../helpers/mailsend");
+const { generateRandom5DigitNumber } = require("../../helpers/otpGenerator");
+const otpModel = require("../../models/otp.model");
 
 // You'll need to implement this function for SMS OTP
 
@@ -194,23 +196,30 @@ const emailsignup = async (req, res) => {
     });
 
     await newUser.save();
+    let otp = generateRandom5DigitNumber();
+    await otpModel.create({
+      contact: email,
+      contactType: "email",
+      otp,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    });
 
     // Generate email verification token
-    const verifyToken = jwt.sign(
-      { id: newUser._id },
-      process.env.AUTH_MAIL_SECRET,
-      { expiresIn: "1h" }
-    );
-    console.log(`Verification token: ${verifyToken}`);
+    // const verifyToken = jwt.sign(
+    //   { id: newUser._id },
+    //   process.env.AUTH_MAIL_SECRET,
+    //   { expiresIn: "1h" }
+    // );
+    // console.log(`Verification token: ${verifyToken}`);
 
-    const verifyLink = `${process.env.CLIENT_URL}/verify-account/${verifyToken}`;
+    // const verifyLink = `${process.env.CLIENT_URL}/verify-account/${verifyToken}`;
 
     // Send verification email
     try {
-      //   await sendMail(email, "Verify your email", "verifyEmail", {
-      //     name: name,
-      //     verifyLink: verifyLink,
-      //   });
+      await sendMail(email, "Verify your email", "verifyEmail", {
+        name: name,
+        otp: otp,
+      });
     } catch (mailError) {
       console.error("Email sending failed:", mailError);
       // Don't fail registration if email fails
@@ -237,23 +246,25 @@ const resendEmailVerification = async (req, res) => {
     if (user.isVerified)
       return res.status(400).json({ message: "Email is already verified" });
 
-    const verifyToken = jwt.sign(
-      { id: user._id },
-      process.env.AUTH_MAIL_SECRET,
-      { expiresIn: "1h" }
-    );
-    const verifyLink = `${process.env.CLIENT_URL}/verify-account/${verifyToken}`;
-    console.log(`Sending verification link to ${email}: ${verifyLink}`);
+    let otp = generateRandom5DigitNumber();
+    await otpModel.create({
+      contact: email,
+      contactType: "email",
+      otp,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    });
+
+    // const verifyLink = `${process.env.CLIENT_URL}/verify-account/${verifyToken}`;
+    // console.log(`Sending verification link to ${email}: ${verifyLink}`);
 
     try {
-      //   await sendMail(email, "Resend Verification Email", "verifyEmail", {
-      //     name: user.name,
-      //     verifyLink,
-      //   });
-      res.json({ message: "Verification email resent successfully!" });
+      await sendMail(email, "Verify your email", "verifyEmail", {
+        name: name,
+        otp: otp,
+      });
     } catch (mailError) {
       console.error("Email sending failed:", mailError);
-      res.status(500).json({ message: "Failed to send verification email" });
+      // Don't fail registration if email fails
     }
   } catch (error) {
     console.error("Resend verification error:", error);
@@ -264,37 +275,50 @@ const resendEmailVerification = async (req, res) => {
 // Verify Email
 const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { email, otp } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ message: "Token is required" });
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
     }
 
-    const decoded = jwt.verify(token, process.env.AUTH_MAIL_SECRET);
-    const user = await User.findById(decoded.id);
+    // Find OTP record
+    const otpDoc = await otpModel.findOne({
+      contact: email,
+      contactType: "email",
+      otp,
+      used: false,
+    });
 
+    if (!otpDoc) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Check expiry
+    if (otpDoc.expiresAt < new Date()) {
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
     if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Invalid token or user not found" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     if (user.isVerified) {
       return res.status(400).json({ message: "Email is already verified" });
     }
 
+    // Mark user as verified
     user.isVerified = true;
     await user.save();
+
+    // Mark OTP as used
+    otpDoc.used = true;
+    await otpDoc.save();
 
     res.status(200).json({ message: "Email verified successfully!" });
   } catch (error) {
     console.error("Email verification error:", error);
-    if (error.name === "JsonWebTokenError") {
-      return res.status(400).json({ message: "Invalid token" });
-    }
-    if (error.name === "TokenExpiredError") {
-      return res.status(400).json({ message: "Token expired" });
-    }
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
