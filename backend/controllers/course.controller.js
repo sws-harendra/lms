@@ -76,7 +76,7 @@ const getAllCourses = async (req, res) => {
       )
 
       .populate("category", "name slug icon")
-      .populate("instructor", "name email")
+      .populate("instructor", "name email profileImage")
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit))

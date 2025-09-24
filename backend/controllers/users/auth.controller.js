@@ -533,11 +533,26 @@ const updateProfile = async (req, res) => {
     ];
 
     const updates = {};
+
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+        try {
+          // Parse JSON if it's an object/array field
+          if (["location", "social", "skills"].includes(field)) {
+            updates[field] = JSON.parse(req.body[field]);
+          } else {
+            updates[field] = req.body[field];
+          }
+        } catch (err) {
+          updates[field] = req.body[field]; // fallback to raw string
+        }
       }
     });
+
+    // Handle profile image if uploaded
+    if (req.file) {
+      updates.profileImage = `/uploads/${req.file.filename}`; // store relative path or cloud URL
+    }
 
     const user = await User.findByIdAndUpdate(userId, updates, {
       new: true,

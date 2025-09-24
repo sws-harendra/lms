@@ -10,6 +10,14 @@ export const enrollmentService = {
     return response.data;
   },
 
+  createRazorPayOrder: async (orderData) => {
+    const response = await axiosInstance.post(
+      "/razorpay/create_order",
+      orderData
+    );
+    return response.data;
+  },
+
   // Complete enrollment after payment
   completeEnrollment: async (enrollmentData) => {
     const response = await axiosInstance.post(

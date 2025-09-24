@@ -111,6 +111,7 @@ export const updateUserProfile = createAsyncThunk(
     }
   }
 );
+
 const initialState = {
   user: null,
   isAuthenticated: false,

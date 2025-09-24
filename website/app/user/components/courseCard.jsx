@@ -93,14 +93,29 @@ const CourseCard = ({ course }) => {
             </p>
 
             {/* Instructor */}
+            {/* Instructor */}
             {instructor && (
               <div className="flex items-center mb-3">
-                <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
-                  <span className="text-xs font-medium text-gray-600">
-                    {instructor.name?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="text-sm text-gray-700">{instructor.name}</span>
+                {instructor.profileImage ? (
+                  <img
+                    src={getMediaUrl(instructor.profileImage)}
+                    alt={instructor.name}
+                    className="w-8 h-8 rounded-full object-cover mr-2"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-2">
+                    <span className="text-xs font-medium text-gray-600">
+                      {instructor.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                {/* Clickable Instructor Name */}
+                <Link
+                  href={`/profile/${instructor._id}`}
+                  className="text-sm text-gray-700 hover:text-blue-600 font-medium"
+                >
+                  {instructor.name}
+                </Link>
               </div>
             )}
 

@@ -40,6 +40,7 @@ import {
 } from "@/lib/store/features/enrollmentSlice";
 import { toast } from "sonner";
 import { getMediaUrl } from "@/app/utils/getAssetsUrl";
+import { enrollmentService } from "@/services/user/enrollment.service";
 
 const CourseById = () => {
   const { id } = useParams();
@@ -50,6 +51,7 @@ const CourseById = () => {
   const { courseAccess } = useSelector((state) => state.enrollment);
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Add ref for video player section
   const videoPlayerRef = useRef(null);
@@ -64,6 +66,92 @@ const CourseById = () => {
     }
   }, [dispatch, id, isAuthenticated, currentCourse]);
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (document.querySelector("#razorpay-sdk")) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = "razorpay-sdk";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const generateOrderId = async () => {
+    try {
+      // load script first
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        throw new Error("Razorpay SDK failed to load. Check your network.");
+      }
+
+      const orderData = {
+        amount: currentCourse.discountPrice * 100,
+        currency: "INR",
+        receiptId: `receipt_${user._id}_${Date.now()}`.slice(0, 40),
+      };
+
+      const response = await enrollmentService.createRazorPayOrder(orderData);
+      if (!response.success) {
+        throw new Error(response.error || "Failed to create order");
+      }
+
+      const options = {
+        key: response.razorPayKey,
+        amount: response.amount,
+        currency: response.currency,
+        name: "Testing",
+        description: "Course Payment",
+        order_id: response.orderId,
+        handler: async function (res) {
+          console.log("Payment success:", res);
+
+          try {
+            // Build enrollmentData similar to handleEnrollment but with real payment ID
+            const enrollmentData = {
+              paymentMethod: "razorpay",
+              transactionId: res.razorpay_payment_id,
+              paymentStatus: "completed",
+            };
+
+            await dispatch(
+              enrollInCourse({
+                courseId: id,
+                paymentData: enrollmentData,
+              })
+            ).unwrap();
+
+            toast.success("Payment successful! You are now enrolled.");
+
+            // clear cart etc.
+          } catch (err) {
+            console.error(err);
+            toast.error("Error verifying payment");
+          }
+        },
+
+        prefill: {
+          name: user?.name || "Guest",
+          email: user?.email || "guest@example.com",
+          contact: user?.phoneNumber || "9999999999",
+        },
+        theme: { color: "#3399cc" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+      return response.orderId;
+    } catch (error) {
+      console.error("Order creation failed:", error);
+      throw error;
+    }
+  };
   // Function to handle lesson click
   const handleLessonClick = (lesson) => {
     if (lesson.isFree) {
@@ -126,6 +214,31 @@ const CourseById = () => {
     }
   };
 
+  const buyCourse = async () => {
+    console.log("handlePlaceOrder");
+    setIsProcessing(true);
+
+    try {
+      const orderId = await generateOrderId();
+
+      if (!orderId) {
+        throw new Error("Failed to generate order ID");
+      }
+
+      // ❌ REMOVE this part:
+      // await dispatch(
+      //   placeOrder({...})
+      // ).unwrap();
+
+      // ✅ Order will now be placed only after payment success
+    } catch (error) {
+      console.error("Order placement failed:", error);
+      alert("Order placement failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Get enrollment button text and state
   const getEnrollmentButtonProps = () => {
     if (!isAuthenticated) {
@@ -159,7 +272,7 @@ const CourseById = () => {
       text: isEnrolling ? "Processing..." : "Enroll Now",
       disabled: isEnrolling,
       variant: "default",
-      onClick: handleEnrollment,
+      onClick: buyCourse,
     };
   };
 

@@ -41,10 +41,27 @@ export const authService = {
     return response.data;
   },
   updateUserProfile: async (profileData) => {
-    const response = await axiosInstance.put(
-      "/user/updateprofile",
-      profileData
-    );
+    const formData = new FormData();
+
+    // Append normal fields
+    Object.keys(profileData).forEach((key) => {
+      if (profileData[key] !== undefined && profileData[key] !== null) {
+        if (
+          typeof profileData[key] === "object" &&
+          !(profileData[key] instanceof File)
+        ) {
+          // stringify nested objects like location, social, skills
+          formData.append(key, JSON.stringify(profileData[key]));
+        } else {
+          formData.append(key, profileData[key]);
+        }
+      }
+    });
+
+    const response = await axiosInstance.put("/user/updateprofile", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
     return response.data.user;
   },
 

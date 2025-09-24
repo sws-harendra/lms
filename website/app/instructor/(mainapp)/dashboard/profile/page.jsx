@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { updateUserProfile } from "@/lib/store/features/authSlice";
+import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 const MyProfile = () => {
   const dispatch = useDispatch();
@@ -20,6 +21,7 @@ const MyProfile = () => {
     skills: [{ name: "", expertise: 0 }],
     location: { country: "", state: "", city: "", address: "" },
     social: { facebook: "", linkedin: "", twitter: "", instagram: "" },
+    profileImage: null,
   });
 
   useEffect(() => {
@@ -45,19 +47,23 @@ const MyProfile = () => {
           twitter: "",
           instagram: "",
         },
+        profileImage: user.profileImage || null,
       });
     }
   }, [user]);
 
   const handleChange = (field, value) =>
     setProfile({ ...profile, [field]: value });
+
   const handleLocationChange = (field, value) =>
     setProfile({
       ...profile,
       location: { ...profile.location, [field]: value },
     });
+
   const handleSocialChange = (field, value) =>
     setProfile({ ...profile, social: { ...profile.social, [field]: value } });
+
   const handleSkillChange = (index, field, value) => {
     const newSkills = [...profile.skills];
     newSkills[index][field] = value;
@@ -69,6 +75,7 @@ const MyProfile = () => {
       ...profile,
       skills: [...profile.skills, { name: "", expertise: 0 }],
     });
+
   const removeSkill = (index) => {
     const newSkills = profile.skills.filter((_, i) => i !== index);
     setProfile({
@@ -76,13 +83,16 @@ const MyProfile = () => {
       skills: newSkills.length ? newSkills : [{ name: "", expertise: 0 }],
     });
   };
-  const handleSave = () => dispatch(updateUserProfile(profile)).unwrap();
+
+  const handleSave = () => {
+    dispatch(updateUserProfile(profile)).unwrap();
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-8 bg-white rounded-2xl shadow-xl space-y-8">
       <h1 className="text-3xl font-extrabold text-gray-800">My Profile</h1>
 
-      {/* Name */}
+      {/* Name + Profile Picture */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <Label>Name</Label>
@@ -90,6 +100,34 @@ const MyProfile = () => {
             value={profile.name}
             onChange={(e) => handleChange("name", e.target.value)}
           />
+        </div>
+
+        {/* Profile Picture */}
+        <div>
+          <Label>Profile Picture</Label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) =>
+              setProfile({ ...profile, profileImage: e.target.files[0] })
+            }
+            className="mt-2"
+          />
+
+          {/* Preview: if file uploaded or existing URL */}
+          {profile.profileImage && typeof profile.profileImage === "string" ? (
+            <img
+              src={getMediaUrl(profile.profileImage)}
+              alt="Profile Preview"
+              className="w-24 h-24 rounded-full mt-2 object-cover"
+            />
+          ) : profile.profileImage instanceof File ? (
+            <img
+              src={URL.createObjectURL(profile.profileImage)}
+              alt="Profile Preview"
+              className="w-24 h-24 rounded-full mt-2 object-cover"
+            />
+          ) : null}
         </div>
 
         <div>

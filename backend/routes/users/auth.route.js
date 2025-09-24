@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../../controllers/users/auth.controller");
 const { authenticateToken } = require("../../middlewares/user.auth");
+const { upload } = require("../../helpers/multer");
 
 router.post("/loginwithemail", auth.emailloginController);
 
@@ -12,5 +13,10 @@ router.post("/resendOtp", auth.resendOtpToPhone);
 router.get("/userdetails", authenticateToken, auth.userdetail);
 router.post("/refreshtoken", auth.refreshToken);
 router.post("/logout", authenticateToken, auth.logout);
-router.put("/updateprofile", authenticateToken, auth.updateProfile);
+router.put(
+  "/updateprofile",
+  upload.single("profileImage"),
+  authenticateToken,
+  auth.updateProfile
+);
 module.exports = router;
