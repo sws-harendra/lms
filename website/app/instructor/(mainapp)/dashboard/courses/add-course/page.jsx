@@ -243,39 +243,47 @@ export default function EnhancedCourseForm() {
   };
 
   // Form submission
+  // Form submission - ONLY CHANGE THE ARRAY HANDLING
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const formData = new FormData();
 
-    // Basic course data
+    // Basic course data - KEEP EVERYTHING ELSE THE SAME
     formData.append("title", title);
     formData.append("slug", slug);
     formData.append("description", description);
     formData.append("category", category);
     formData.append("level", level);
     formData.append("language", language);
-    formData.append("price", price);
-    formData.append("discountPrice", discountPrice);
-    formData.append("isFree", isFree);
-    formData.append("isPublished", isPublished);
-    formData.append("certificateEnabled", certificateEnabled);
+    formData.append("price", isFree ? "0" : price);
+    formData.append("discountPrice", discountPrice || "0");
+    formData.append("isFree", isFree.toString());
+    formData.append("isPublished", isPublished.toString());
+    formData.append("certificateEnabled", certificateEnabled.toString());
 
-    // Arrays
-    formData.append("tags", JSON.stringify(tags));
-    formData.append(
-      "requirements",
-      JSON.stringify(requirements.filter((r) => r.trim()))
-    );
-    formData.append(
-      "whatYouWillLearn",
-      JSON.stringify(whatYouWillLearn.filter((w) => w.trim()))
-    );
+    // ✅ FIX: Append arrays WITHOUT JSON.stringify()
+    // Just append each item individually with the same field name
+    tags.forEach((tag) => {
+      formData.append("tags", tag); // Simple string, not JSON
+    });
 
-    // Thumbnail
+    requirements
+      .filter((r) => r.trim())
+      .forEach((req) => {
+        formData.append("requirements", req); // Simple string
+      });
+
+    whatYouWillLearn
+      .filter((w) => w.trim())
+      .forEach((item) => {
+        formData.append("whatYouWillLearn", item); // Simple string
+      });
+
+    // Thumbnail - KEEP THE SAME
     if (thumbnail) formData.append("thumbnail", thumbnail);
 
-    // Lesson videos
+    // Lesson videos - KEEP THE SAME
     sections.forEach((section) => {
       section.lessons.forEach((lesson) => {
         if (lesson.videoFile) {
@@ -284,7 +292,7 @@ export default function EnhancedCourseForm() {
       });
     });
 
-    // Sections data
+    // Sections data - KEEP JSON.stringify() for complex objects
     const sectionsData = sections.map((section) => ({
       title: section.title,
       description: section.description,
@@ -300,16 +308,17 @@ export default function EnhancedCourseForm() {
       resources: section.resources,
     }));
 
-    formData.append("sections", JSON.stringify(sectionsData));
+    formData.append("sections", JSON.stringify(sectionsData)); // This is correct for complex objects
 
-    console.log(
-      "Form data ready for submission:",
-      Object.fromEntries(formData)
-    );
-    // Here you would dispatch to your Redux store or make API call
+    console.log("Form data ready for submission:");
+
+    // Debug: Log what's being sent
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+
     dispatch(createCourse(formData));
   };
-
   return (
     <div className="mx-auto p-6 space-y-6">
       <Card>

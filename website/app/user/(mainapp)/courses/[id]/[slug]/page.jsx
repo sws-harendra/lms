@@ -191,6 +191,12 @@ const CourseById = () => {
       toast.error("Please enroll to access this lesson");
     }
   };
+  const handleShare = (course) => {
+    const url = `${window.location.origin}/user/courses/${course._id}/${course.slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("Course link copied to clipboard!");
+    });
+  };
 
   const handleEnrollment = async () => {
     if (!isAuthenticated) {
@@ -414,14 +420,7 @@ const CourseById = () => {
                 ) : (
                   <>
                     <Button
-                      variant="secondary"
-                      size="sm"
-                      className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-                    >
-                      <Heart className="h-4 w-4 mr-2" />
-                      Wishlist
-                    </Button>
-                    <Button
+                      onClick={() => handleShare(currentCourse)}
                       variant="secondary"
                       size="sm"
                       className="bg-white/20 text-white border-white/30 hover:bg-white/30"
