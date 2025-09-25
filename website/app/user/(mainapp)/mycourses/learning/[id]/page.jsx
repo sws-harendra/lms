@@ -11,7 +11,18 @@ import {
 } from "@/lib/store/features/enrollmentSlice";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/videoPlayer";
-import { CheckCircle, Circle, Download } from "lucide-react";
+import {
+  CheckCircle,
+  Circle,
+  Download,
+  Star,
+  Clock,
+  Users,
+  Award,
+  BookOpen,
+  MessageSquare,
+  TrendingUp,
+} from "lucide-react";
 import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 const LearningPage = () => {
@@ -27,6 +38,27 @@ const LearningPage = () => {
   const [completedLessons, setCompletedLessons] = useState(new Set());
   const [isCourseCompleted, setIsCourseCompleted] = useState(false);
   const [isMarkingCompleted, setIsMarkingCompleted] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [userRating, setUserRating] = useState(0);
+  const [userReview, setUserReview] = useState("");
+
+  // Mock reviews data - replace with actual API call
+  const [reviews, setReviews] = useState([
+    {
+      id: 1,
+      userName: "John Doe",
+      rating: 5,
+      review: "Excellent course! Very comprehensive and well-structured.",
+      date: "2025-09-20",
+    },
+    {
+      id: 2,
+      userName: "Jane Smith",
+      rating: 4,
+      review: "Great content, learned a lot about JavaScript fundamentals.",
+      date: "2025-09-18",
+    },
+  ]);
 
   useEffect(() => {
     if (id) {
@@ -54,13 +86,8 @@ const LearningPage = () => {
       );
     }
 
-    // Debug: Log the current enrollment structure
-    console.log("currentEnrollment:", currentEnrollment);
-    console.log("courseAccess:", courseAccess);
-
     // Check all possible sources for completed lessons
     if (currentEnrollment?.progress?.completedLessons) {
-      // This is the main source - from markLessonCompleted.fulfilled
       completedLessonsArray = currentEnrollment.progress.completedLessons;
     } else if (courseAccess?.enrollment?.progress?.completedLessons) {
       completedLessonsArray = courseAccess.enrollment.progress.completedLessons;
@@ -68,8 +95,6 @@ const LearningPage = () => {
       completedLessonsArray =
         currentEnrollment.enrollment.progress.completedLessons;
     }
-
-    console.log("completedLessonsArray:", completedLessonsArray);
 
     if (completedLessonsArray && completedLessonsArray.length > 0) {
       const completedSet = new Set(
@@ -106,7 +131,6 @@ const LearningPage = () => {
   const handleMarkCompleted = async () => {
     let enrollmentId;
 
-    // Get enrollment ID from either source
     if (courseAccess?.enrollment?._id) {
       enrollmentId = courseAccess.enrollment._id;
     } else if (currentEnrollment?._id) {
@@ -118,7 +142,6 @@ const LearningPage = () => {
     if (enrollmentId && activeLesson) {
       setIsMarkingCompleted(true);
       try {
-        // Optimistically update the UI first
         setCompletedLessons((prev) => new Set(prev).add(activeLesson._id));
 
         const result = await dispatch(
@@ -132,10 +155,6 @@ const LearningPage = () => {
           })
         ).unwrap();
 
-        console.log("Mark completed result:", result);
-
-        // The Redux store should be updated automatically by the fulfilled case
-        // Let's also manually update our local state to be sure
         if (result.progress?.completedLessons) {
           const completedSet = new Set(
             result.progress.completedLessons.map((lesson) => lesson.lessonId)
@@ -144,7 +163,6 @@ const LearningPage = () => {
         }
       } catch (error) {
         console.error("Failed to mark lesson as completed:", error);
-        // Revert optimistic update if there was an error
         setCompletedLessons((prev) => {
           const newSet = new Set(prev);
           newSet.delete(activeLesson._id);
@@ -157,20 +175,62 @@ const LearningPage = () => {
   };
 
   const handleDownloadCertificate = () => {
-    // Implement certificate download logic here
     console.log("Downloading certificate...");
-    // This would typically call an API endpoint to generate/download the certificate
     alert("Certificate download functionality would be implemented here");
   };
 
-  if (status === "loading") return <div>Loading course...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!currentCourse) return <div>No course found.</div>;
+  const handleSubmitReview = () => {
+    if (userRating > 0 && userReview.trim()) {
+      const newReview = {
+        id: reviews.length + 1,
+        userName: "Current User", // Replace with actual user name
+        rating: userRating,
+        review: userReview,
+        date: new Date().toISOString().split("T")[0],
+      };
+      setReviews([newReview, ...reviews]);
+      setUserRating(0);
+      setUserReview("");
+      // Here you would make an API call to submit the review
+    }
+  };
+
+  if (status === "loading")
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading course...</p>
+        </div>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Error: {error}</p>
+        </div>
+      </div>
+    );
+
+  if (!currentCourse)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">No course found.</p>
+        </div>
+      </div>
+    );
 
   const hasAccess = courseAccess?.hasAccess;
   const certificateEnabled = currentCourse.certificateEnabled;
+  const totalLessons = currentCourse.sections.reduce(
+    (total, section) => total + (section.lessons?.length || 0),
+    0
+  );
+  const progressPercentage = (completedLessons.size / totalLessons) * 100;
 
-  // Helper function to handle lesson selection
   const handleLessonSelect = (section, lesson) => {
     setActiveLesson({
       ...lesson,
@@ -178,174 +238,511 @@ const LearningPage = () => {
     });
   };
 
-  // Check if a lesson is completed
   const isLessonCompleted = (lessonId) => completedLessons.has(lessonId);
 
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : 0;
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: BookOpen },
+    { id: "learning", label: "What You'll Learn", icon: TrendingUp },
+    { id: "reviews", label: "Reviews", icon: MessageSquare },
+  ];
+
   return (
-    <div className="flex h-screen">
-      {/* Main Video */}
-      <div className="flex-1 p-4">
-        {activeLesson ? (
-          <div>
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h1 className="text-2xl font-bold mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="flex h-screen">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="bg-white shadow-sm border-b px-8 py-6">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
                   {currentCourse.title}
                 </h1>
-                <h2 className="text-lg font-semibold">
-                  {activeLesson.title}
-                  {isLessonCompleted(activeLesson._id) && (
-                    <CheckCircle
-                      className="inline-block ml-2 text-green-500"
-                      size={20}
-                    />
-                  )}
-                </h2>
+                {activeLesson && (
+                  <div className="flex items-center space-x-3">
+                    <h2 className="text-xl font-semibold text-gray-700">
+                      {activeLesson.title}
+                    </h2>
+                    {isLessonCompleted(activeLesson._id) && (
+                      <div className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full">
+                        <CheckCircle size={16} className="mr-1" />
+                        <span className="text-sm font-medium">Completed</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="flex flex-col items-end gap-3">
+              <div className="flex items-center space-x-4">
                 {isCourseCompleted && certificateEnabled && (
                   <Button
                     onClick={handleDownloadCertificate}
-                    className="flex items-center gap-2"
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg"
                   >
-                    <Download size={16} />
-                    Download Certificate
+                    <Award size={18} className="mr-2" />
+                    Get Certificate
                   </Button>
                 )}
 
-                <div>
-                  <h3 className="text-base font-semibold mb-2 text-gray-800">
+                {/* Instructor Card */}
+                <div className="bg-white rounded-xl shadow-sm border px-4 py-3 min-w-[200px]">
+                  <p className="text-sm font-medium text-gray-500 mb-2">
                     Instructor
-                  </h3>
-                  <div className="rounded-xl bg-white px-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 font-bold">
-                        {currentCourse.instructor?.name?.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {currentCourse.instructor?.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {currentCourse.instructor?.email}
-                        </p>
-                      </div>
+                  </p>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                      {currentCourse.instructor?.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {currentCourse.instructor?.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {currentCourse.instructor?.email}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {hasAccess ? (
-              <>
-                <VideoPlayer
-                  url={getMediaUrl(activeLesson.videoUrl)}
-                  title={activeLesson.title}
-                  trackProgress={true}
-                  onComplete={handleMarkCompleted}
-                />
-                {!isLessonCompleted(activeLesson._id) && (
-                  <div className="mt-4">
-                    <Button
-                      onClick={handleMarkCompleted}
-                      disabled={isMarkingCompleted}
-                    >
-                      {isMarkingCompleted ? "Marking..." : "Mark as Completed"}
-                    </Button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-[500px] flex items-center justify-center bg-gray-200 rounded-md">
-                <p className="text-gray-700">
-                  This is a preview. Enroll to unlock the full video.
-                </p>
-              </div>
-            )}
-
-            <p className="mt-3 text-sm text-gray-600">
-              {activeLesson.description}
-            </p>
-
-            {/* Progress indicator */}
+            {/* Progress Bar */}
             <div className="mt-6">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm font-semibold text-gray-700">
                   Course Progress
                 </span>
-                <span className="text-sm text-gray-500">
-                  {completedLessons.size} /{" "}
-                  {currentCourse.sections.reduce(
-                    (total, section) => total + (section.lessons?.length || 0),
-                    0
-                  )}{" "}
-                  lessons completed
-                </span>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <CheckCircle size={16} className="mr-1 text-green-500" />
+                    {completedLessons.size} / {totalLessons} lessons
+                  </span>
+                  <span className="flex items-center">
+                    <Clock size={16} className="mr-1 text-blue-500" />
+                    {Math.round(progressPercentage)}% complete
+                  </span>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-gray-200 rounded-full h-3">
                 <div
-                  className="bg-blue-600 h-2.5 rounded-full"
-                  style={{
-                    width: `${
-                      (completedLessons.size /
-                        currentCourse.sections.reduce(
-                          (total, section) =>
-                            total + (section.lessons?.length || 0),
-                          0
-                        )) *
-                      100
-                    }%`,
-                  }}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercentage}%` }}
                 ></div>
               </div>
             </div>
           </div>
-        ) : (
-          <div>Select a lesson to start learning</div>
-        )}
-      </div>
 
-      {/* Sidebar */}
-      <div className="w-96 border-l bg-gray-50 overflow-y-auto p-4">
-        <h3 className="text-lg font-bold mb-4">Course Content</h3>
-        {currentCourse.sections.map((section, sIndex) => (
-          <div key={section._id} className="mb-4">
-            <h4 className="font-semibold text-gray-700">
-              {sIndex + 1}. {section.title}
-            </h4>
-            <ul className="ml-2 mt-2 space-y-2">
-              {section.lessons.map((lesson, lIndex) => {
-                const isCompleted = isLessonCompleted(lesson._id);
-                return (
-                  <li key={lesson._id}>
-                    <Button
-                      variant={
-                        activeLesson?._id === lesson._id ? "default" : "outline"
-                      }
-                      className="w-full justify-start text-left relative"
-                      onClick={() => handleLessonSelect(section, lesson)}
-                    >
-                      <div className="absolute left-2">
-                        {isCompleted ? (
-                          <CheckCircle className="text-green-500" size={16} />
-                        ) : (
-                          <Circle className="text-gray-400" size={16} />
-                        )}
+          {/* Video Section */}
+          <div className="flex-1 p-8">
+            {activeLesson ? (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                  {hasAccess ? (
+                    <VideoPlayer
+                      url={getMediaUrl(activeLesson.videoUrl)}
+                      title={activeLesson.title}
+                      trackProgress={true}
+                      onComplete={handleMarkCompleted}
+                    />
+                  ) : (
+                    <div className="w-full h-[500px] flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <BookOpen size={32} className="text-blue-600" />
+                        </div>
+                        <p className="text-xl font-semibold text-gray-700 mb-2">
+                          Preview Mode
+                        </p>
+                        <p className="text-gray-600">
+                          Enroll to unlock the full video experience
+                        </p>
                       </div>
-                      <span className="ml-6">
-                        {lIndex + 1}. {lesson.title}
-                      </span>
-                      <span className="ml-auto text-xs text-gray-500">
-                        {lesson.duration} min
-                      </span>
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Lesson Description
+                      </h3>
+                      <p className="text-gray-600">
+                        {activeLesson.description}
+                      </p>
+                    </div>
+                    {hasAccess && !isLessonCompleted(activeLesson._id) && (
+                      <Button
+                        onClick={handleMarkCompleted}
+                        disabled={isMarkingCompleted}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {isMarkingCompleted ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Marking...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={16} className="mr-2" />
+                            Mark Complete
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabs Section */}
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  {/* Tab Headers */}
+                  <div className="border-b border-gray-200">
+                    <nav className="flex space-x-8 px-6">
+                      {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center transition-colors ${
+                              activeTab === tab.id
+                                ? "border-blue-500 text-blue-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                            }`}
+                          >
+                            <Icon size={18} className="mr-2" />
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </nav>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="p-6">
+                    {activeTab === "overview" && (
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-3">
+                            Course Description
+                          </h4>
+                          <p className="text-gray-600 leading-relaxed">
+                            {currentCourse.description}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-blue-50 rounded-lg p-4">
+                            <div className="flex items-center mb-2">
+                              <Clock className="text-blue-600 mr-2" size={20} />
+                              <span className="font-semibold text-blue-900">
+                                Duration
+                              </span>
+                            </div>
+                            <p className="text-blue-700">
+                              {Math.floor(currentCourse.totalDuration / 60)}h{" "}
+                              {currentCourse.totalDuration % 60}m
+                            </p>
+                          </div>
+                          <div className="bg-green-50 rounded-lg p-4">
+                            <div className="flex items-center mb-2">
+                              <TrendingUp
+                                className="text-green-600 mr-2"
+                                size={20}
+                              />
+                              <span className="font-semibold text-green-900">
+                                Level
+                              </span>
+                            </div>
+                            <p className="text-green-700 capitalize">
+                              {currentCourse.level}
+                            </p>
+                          </div>
+                          <div className="bg-purple-50 rounded-lg p-4">
+                            <div className="flex items-center mb-2">
+                              <Users
+                                className="text-purple-600 mr-2"
+                                size={20}
+                              />
+                              <span className="font-semibold text-purple-900">
+                                Students
+                              </span>
+                            </div>
+                            <p className="text-purple-700">
+                              {currentCourse.enrolledUsers?.length || 0}{" "}
+                              enrolled
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-3">
+                            Requirements
+                          </h4>
+                          <ul className="space-y-2">
+                            {currentCourse.requirements?.map((req, index) => (
+                              <li key={index} className="flex items-start">
+                                <CheckCircle
+                                  size={16}
+                                  className="text-green-500 mr-2 mt-0.5 flex-shrink-0"
+                                />
+                                <span className="text-gray-600">{req}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "learning" && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-4">
+                          What You'll Learn
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {currentCourse.whatYouWillLearn?.map(
+                            (item, index) => (
+                              <div key={index} className="flex items-start">
+                                <CheckCircle
+                                  size={18}
+                                  className="text-green-500 mr-3 mt-1 flex-shrink-0"
+                                />
+                                <span className="text-gray-700">{item}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "reviews" && (
+                      <div className="space-y-6">
+                        {/* Rating Overview */}
+                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">
+                                Course Rating
+                              </h4>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={20}
+                                      className={
+                                        i < Math.floor(averageRating)
+                                          ? "text-yellow-400 fill-current"
+                                          : "text-gray-300"
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-xl font-bold text-gray-900">
+                                  {averageRating.toFixed(1)}
+                                </span>
+                                <span className="text-gray-600">
+                                  ({reviews.length} reviews)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Add Review */}
+                        <div className="border rounded-lg p-6">
+                          <h4 className="font-semibold text-gray-900 mb-4">
+                            Leave a Review
+                          </h4>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Rating
+                              </label>
+                              <div className="flex items-center space-x-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setUserRating(i + 1)}
+                                    className="focus:outline-none"
+                                  >
+                                    <Star
+                                      size={24}
+                                      className={
+                                        i < userRating
+                                          ? "text-yellow-400 fill-current"
+                                          : "text-gray-300 hover:text-yellow-200"
+                                      }
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Review
+                              </label>
+                              <textarea
+                                value={userReview}
+                                onChange={(e) => setUserReview(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                rows={4}
+                                placeholder="Share your experience with this course..."
+                              />
+                            </div>
+                            <Button
+                              onClick={handleSubmitReview}
+                              disabled={!userRating || !userReview.trim()}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Submit Review
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Reviews List */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-gray-900">
+                            All Reviews
+                          </h4>
+                          {reviews.map((review) => (
+                            <div
+                              key={review.id}
+                              className="border rounded-lg p-6"
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <p className="font-semibold text-gray-900">
+                                    {review.userName}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <div className="flex items-center">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          size={16}
+                                          className={
+                                            i < review.rating
+                                              ? "text-yellow-400 fill-current"
+                                              : "text-gray-300"
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="text-sm text-gray-600">
+                                      {review.date}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-gray-700">{review.review}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <BookOpen size={48} className="text-gray-400 mx-auto mb-4" />
+                  <p className="text-xl text-gray-600">
+                    Select a lesson to start learning
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+        </div>
+
+        {/* Sidebar */}
+        <div className="w-96 bg-white border-l shadow-lg overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b px-6 py-4">
+            <h3 className="text-lg font-bold text-gray-900">Course Content</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              {currentCourse.sections.length} sections • {totalLessons} lessons
+            </p>
+          </div>
+
+          <div className="p-4">
+            {currentCourse.sections.map((section, sIndex) => (
+              <div key={section._id} className="mb-6">
+                <div className="bg-gray-50 rounded-lg p-4 mb-3">
+                  <h4 className="font-semibold text-gray-800 flex items-center">
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded mr-3">
+                      {sIndex + 1}
+                    </span>
+                    {section.title}
+                  </h4>
+                  {section.description && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      {section.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2 ml-4">
+                  {section.lessons.map((lesson, lIndex) => {
+                    const isCompleted = isLessonCompleted(lesson._id);
+                    const isActive = activeLesson?._id === lesson._id;
+
+                    return (
+                      <button
+                        key={lesson._id}
+                        onClick={() => handleLessonSelect(section, lesson)}
+                        className={`w-full p-3 rounded-lg text-left transition-all duration-200 ${
+                          isActive
+                            ? "bg-blue-50 border-2 border-blue-200 shadow-sm"
+                            : "bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              {isCompleted ? (
+                                <CheckCircle
+                                  className="text-green-500"
+                                  size={18}
+                                />
+                              ) : (
+                                <Circle className="text-gray-400" size={18} />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={`text-sm font-medium truncate ${
+                                  isActive ? "text-blue-900" : "text-gray-900"
+                                }`}
+                              >
+                                {lIndex + 1}. {lesson.title}
+                              </p>
+                              <div className="flex items-center mt-1 space-x-2">
+                                <Clock size={12} className="text-gray-400" />
+                                <span className="text-xs text-gray-500">
+                                  {lesson.duration} min
+                                </span>
+                                {lesson.isFree && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                                    Free
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
