@@ -12,7 +12,6 @@ const getAllCourses = async (req, res) => {
       search = "",
       category,
       isFree,
-      isPublished,
       sortBy = "createdAt", // now can also be "rating"
       sortOrder = "desc",
       minRating = 0,
@@ -20,6 +19,9 @@ const getAllCourses = async (req, res) => {
     } = req.query;
 
     const query = {};
+
+    // ✅ Always only published courses
+    query.isPublished = true;
 
     // Search by title, description, or tags
     if (search) {
@@ -32,11 +34,9 @@ const getAllCourses = async (req, res) => {
 
     // Optional Filters
     if (category) {
-      // Check if category is ObjectId or slug/name
       if (mongoose.Types.ObjectId.isValid(category)) {
         query.category = category;
       } else {
-        // Find category by slug or name
         const categoryDoc = await CourseCategory.findOne({
           $or: [
             { slug: category },
@@ -50,7 +50,6 @@ const getAllCourses = async (req, res) => {
     }
 
     if (isFree !== undefined) query.isFree = isFree === "true";
-    if (isPublished !== undefined) query.isPublished = isPublished === "true";
 
     // Rating filter
     query["rating.average"] = {
@@ -69,12 +68,10 @@ const getAllCourses = async (req, res) => {
     // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Fetch courses with populated category
     const courses = await Course.find(query)
       .select(
         "title slug description thumbnail price discountPrice isFree rating category instructor"
       )
-
       .populate("category", "name slug icon")
       .populate("instructor", "name email profileImage")
       .sort(sort)
@@ -82,11 +79,10 @@ const getAllCourses = async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
-    // Total count
     const total = await Course.countDocuments(query);
 
     res.status(200).json({
-      courses: courses,
+      courses,
       pagination: {
         total,
         page: parseInt(page),
@@ -363,19 +359,35 @@ const createCourse = async (req, res) => {
     }
 
     // Handle lesson video uploads
-    const uploadedFiles = req.files?.lessonVideos || [];
-    let fileIndex = 0;
+    const uploadedVideos = req.files?.lessonVideos || [];
+    let videoIndex = 0;
 
+    // NEW: Handle document file uploads
+    const uploadedDocuments = req.files?.documentFiles || [];
+    let documentIndex = 0;
+
+    // Process sections with both videos and documents
     const processedSections = sectionsData.map((section) => {
+      // Process lessons with video files
       const lessons = section.lessons.map((lesson) => {
-        // Use uploaded file if no videoUrl provided
-        if (!lesson.videoUrl && uploadedFiles[fileIndex]) {
-          lesson.videoUrl = `/uploads/${uploadedFiles[fileIndex].filename}`;
-          fileIndex++;
+        if (!lesson.videoUrl && uploadedVideos[videoIndex]) {
+          lesson.videoUrl = `/uploads/${uploadedVideos[videoIndex].filename}`;
+          videoIndex++;
         }
         return lesson;
       });
-      return { ...section, lessons };
+
+      // NEW: Process resources with document files
+      const resources = section.resources.map((resource) => {
+        // For document type resources, assign the uploaded file
+        if (resource.type === "document" && uploadedDocuments[documentIndex]) {
+          resource.fileUrl = `/uploads/${uploadedDocuments[documentIndex].filename}`;
+          documentIndex++;
+        }
+        return resource;
+      });
+
+      return { ...section, lessons, resources };
     });
 
     // Calculate total duration
@@ -430,7 +442,6 @@ const createCourse = async (req, res) => {
     res.status(500).json({ message: "Server error while creating course" });
   }
 };
-
 // Get courses by category
 const getCoursesByCategory = async (req, res) => {
   try {

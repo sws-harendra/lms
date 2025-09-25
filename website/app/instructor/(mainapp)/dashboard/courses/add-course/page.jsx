@@ -26,6 +26,7 @@ import {
   Video,
   FileText,
   GripVertical,
+  File,
 } from "lucide-react";
 import {
   createCourse,
@@ -37,10 +38,11 @@ export default function EnhancedCourseForm() {
   const dispatch = useDispatch();
   const { categories, status } = useSelector((state) => state.course);
   let isLoading = status == "loading";
+
   useEffect(() => {
-    // Fetch categories from backend if not already loaded
     dispatch(getAllCategories());
-  }, []); // dispatch(fetchCategories());
+  }, []);
+
   // Basic course info
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -216,7 +218,7 @@ export default function EnhancedCourseForm() {
     setSections(newSections);
   };
 
-  // Resource management
+  // Resource management - UPDATED FOR DOCUMENT NOTES
   const addResource = (sectionIndex, type) => {
     const newSections = [...sections];
     newSections[sectionIndex].resources.push({
@@ -224,6 +226,7 @@ export default function EnhancedCourseForm() {
       title: "",
       url: "",
       content: "",
+      file: null, // NEW: For document file upload
       isFree: false,
       order: newSections[sectionIndex].resources.length,
     });
@@ -242,14 +245,13 @@ export default function EnhancedCourseForm() {
     setSections(newSections);
   };
 
-  // Form submission
-  // Form submission - ONLY CHANGE THE ARRAY HANDLING
+  // Form submission - UPDATED FOR DOCUMENT NOTES
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const formData = new FormData();
 
-    // Basic course data - KEEP EVERYTHING ELSE THE SAME
+    // Basic course data
     formData.append("title", title);
     formData.append("slug", slug);
     formData.append("description", description);
@@ -262,28 +264,27 @@ export default function EnhancedCourseForm() {
     formData.append("isPublished", isPublished.toString());
     formData.append("certificateEnabled", certificateEnabled.toString());
 
-    // ✅ FIX: Append arrays WITHOUT JSON.stringify()
-    // Just append each item individually with the same field name
+    // Append arrays
     tags.forEach((tag) => {
-      formData.append("tags", tag); // Simple string, not JSON
+      formData.append("tags", tag);
     });
 
     requirements
       .filter((r) => r.trim())
       .forEach((req) => {
-        formData.append("requirements", req); // Simple string
+        formData.append("requirements", req);
       });
 
     whatYouWillLearn
       .filter((w) => w.trim())
       .forEach((item) => {
-        formData.append("whatYouWillLearn", item); // Simple string
+        formData.append("whatYouWillLearn", item);
       });
 
-    // Thumbnail - KEEP THE SAME
+    // Thumbnail
     if (thumbnail) formData.append("thumbnail", thumbnail);
 
-    // Lesson videos - KEEP THE SAME
+    // Lesson videos
     sections.forEach((section) => {
       section.lessons.forEach((lesson) => {
         if (lesson.videoFile) {
@@ -292,7 +293,18 @@ export default function EnhancedCourseForm() {
       });
     });
 
-    // Sections data - KEEP JSON.stringify() for complex objects
+    // NEW: Document files for resources
+    // In your handleSubmit function, make sure you're appending document files correctly:
+
+    // NEW: Document files for resources
+    sections.forEach((section, sIdx) => {
+      section.resources.forEach((resource, rIdx) => {
+        if (resource.file && resource.type === "document") {
+          formData.append("documentFiles", resource.file);
+        }
+      });
+    });
+    // Sections data
     const sectionsData = sections.map((section) => ({
       title: section.title,
       description: section.description,
@@ -305,10 +317,18 @@ export default function EnhancedCourseForm() {
         isFree: lesson.isFree,
         order: lesson.order,
       })),
-      resources: section.resources,
+      resources: section.resources.map((resource) => ({
+        type: resource.type,
+        title: resource.title,
+        url: resource.url,
+        content: resource.content,
+        isFree: resource.isFree,
+        order: resource.order,
+        // File will be handled separately in backend
+      })),
     }));
 
-    formData.append("sections", JSON.stringify(sectionsData)); // This is correct for complex objects
+    formData.append("sections", JSON.stringify(sectionsData));
 
     console.log("Form data ready for submission:");
 
@@ -319,6 +339,7 @@ export default function EnhancedCourseForm() {
 
     dispatch(createCourse(formData));
   };
+
   return (
     <div className="mx-auto p-6 space-y-6">
       <Card>
@@ -337,8 +358,9 @@ export default function EnhancedCourseForm() {
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
 
-              {/* Basic Information Tab */}
+              {/* Basic Information Tab - UNCHANGED */}
               <TabsContent value="basic" className="space-y-6">
+                {/* ... (keep all the existing basic info form fields) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="title">Course Title *</Label>
@@ -388,10 +410,6 @@ export default function EnhancedCourseForm() {
                             {cat.name}
                           </SelectItem>
                         ))}
-                        {/* <SelectItem value="programming">Programming</SelectItem>
-                        <SelectItem value="design">Design</SelectItem>
-                        <SelectItem value="business">Business</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem> */}
                       </SelectContent>
                     </Select>
                   </div>
@@ -533,7 +551,7 @@ export default function EnhancedCourseForm() {
                 </div>
               </TabsContent>
 
-              {/* Content Tab */}
+              {/* Content Tab - UPDATED FOR DOCUMENT NOTES */}
               <TabsContent value="content" className="space-y-6">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
@@ -771,7 +789,7 @@ export default function EnhancedCourseForm() {
                               Additional Resources
                             </h4>
                             <div className="flex gap-2">
-                              <Button
+                              {/* <Button
                                 type="button"
                                 onClick={() => addResource(sIdx, "pdf")}
                                 variant="outline"
@@ -779,24 +797,43 @@ export default function EnhancedCourseForm() {
                               >
                                 <FileText className="h-4 w-4 mr-2" />
                                 PDF
-                              </Button>
-                              <Button
+                              </Button> */}
+                              {/* <Button
                                 type="button"
                                 onClick={() => addResource(sIdx, "quiz")}
                                 variant="outline"
                                 size="sm"
                               >
                                 Quiz
+                              </Button> */}
+                              {/* NEW: Document Notes Button */}
+                              <Button
+                                type="button"
+                                onClick={() => addResource(sIdx, "document")}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <File className="h-4 w-4 mr-2" />
+                                Document Notes
                               </Button>
                             </div>
                           </div>
-
                           {section.resources.map((resource, rIdx) => (
                             <Card key={rIdx} className="border">
                               <CardContent className="pt-4">
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
-                                    <Badge variant="secondary">
+                                    <Badge
+                                      variant={
+                                        resource.type === "document"
+                                          ? "default"
+                                          : resource.type === "pdf"
+                                          ? "destructive"
+                                          : resource.type === "quiz"
+                                          ? "secondary"
+                                          : "outline"
+                                      }
+                                    >
                                       {resource.type.toUpperCase()}
                                     </Badge>
                                     <Button
@@ -822,35 +859,126 @@ export default function EnhancedCourseForm() {
                                         )
                                       }
                                       placeholder="Resource title"
+                                      required
                                     />
-                                    <Input
-                                      value={resource.url}
-                                      onChange={(e) =>
-                                        handleResourceChange(
-                                          sIdx,
-                                          rIdx,
-                                          "url",
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Resource URL"
-                                    />
+
+                                    {/* Show URL field only for non-document types */}
+                                    {resource.type !== "document" && (
+                                      <Input
+                                        value={resource.url}
+                                        onChange={(e) =>
+                                          handleResourceChange(
+                                            sIdx,
+                                            rIdx,
+                                            "url",
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Resource URL"
+                                      />
+                                    )}
                                   </div>
 
+                                  {/* File Upload for Document Notes */}
+                                  {resource.type === "document" && (
+                                    <div className="space-y-2">
+                                      <Label>Upload Document File *</Label>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="file"
+                                          accept=".pdf,.doc,.docx,.txt,.md"
+                                          onChange={(e) =>
+                                            handleResourceChange(
+                                              sIdx,
+                                              rIdx,
+                                              "file",
+                                              e.target.files[0]
+                                            )
+                                          }
+                                          className="hidden"
+                                          id={`document-${sIdx}-${rIdx}`}
+                                          required
+                                        />
+                                        <Label
+                                          htmlFor={`document-${sIdx}-${rIdx}`}
+                                          className="cursor-pointer flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50"
+                                        >
+                                          <File className="h-4 w-4" />
+                                          {resource.file
+                                            ? "Change Document"
+                                            : "Choose Document"}
+                                        </Label>
+                                        {resource.file && (
+                                          <span className="text-sm text-green-600">
+                                            {resource.file.name}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-gray-500">
+                                        Supported formats: PDF, DOC, DOCX, TXT,
+                                        MD (Max 10MB)
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* URL field for PDF type */}
+                                  {resource.type === "pdf" && (
+                                    <div className="space-y-2">
+                                      <Label>PDF URL</Label>
+                                      <Input
+                                        value={resource.url}
+                                        onChange={(e) =>
+                                          handleResourceChange(
+                                            sIdx,
+                                            rIdx,
+                                            "url",
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="https://example.com/document.pdf"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* Content field for Quiz type */}
                                   {resource.type === "quiz" && (
-                                    <Textarea
-                                      value={resource.content}
-                                      onChange={(e) =>
+                                    <div className="space-y-2">
+                                      <Label>Quiz Instructions</Label>
+                                      <Textarea
+                                        value={resource.content}
+                                        onChange={(e) =>
+                                          handleResourceChange(
+                                            sIdx,
+                                            rIdx,
+                                            "content",
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Enter quiz instructions or questions..."
+                                        className="min-h-[80px]"
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`resource-free-${sIdx}-${rIdx}`}
+                                      checked={resource.isFree}
+                                      onCheckedChange={(checked) =>
                                         handleResourceChange(
                                           sIdx,
                                           rIdx,
-                                          "content",
-                                          e.target.value
+                                          "isFree",
+                                          checked
                                         )
                                       }
-                                      placeholder="Quiz instructions or content"
                                     />
-                                  )}
+                                    <Label
+                                      htmlFor={`resource-free-${sIdx}-${rIdx}`}
+                                    >
+                                      Free Preview
+                                    </Label>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -862,7 +990,7 @@ export default function EnhancedCourseForm() {
                 </div>
               </TabsContent>
 
-              {/* Requirements Tab */}
+              {/* Requirements Tab - UNCHANGED */}
               <TabsContent value="requirements" className="space-y-6">
                 <div className="space-y-6">
                   <div>
@@ -949,7 +1077,7 @@ export default function EnhancedCourseForm() {
                 </div>
               </TabsContent>
 
-              {/* Settings Tab */}
+              {/* Settings Tab - UNCHANGED */}
               <TabsContent value="settings" className="space-y-6">
                 <div className="space-y-6">
                   <Card>
@@ -1088,7 +1216,7 @@ export default function EnhancedCourseForm() {
               </TabsContent>
             </Tabs>
 
-            {/* Form Actions */}
+            {/* Form Actions - UNCHANGED */}
             <div className="sticky bottom-0 bg-white border-t pt-6 mt-8">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">

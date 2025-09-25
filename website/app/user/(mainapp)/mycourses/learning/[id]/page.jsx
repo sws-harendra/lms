@@ -706,6 +706,7 @@ const LearningPage = () => {
         </div>
 
         {/* Sidebar */}
+        {/* Sidebar */}
         <div className="w-96 bg-white border-l shadow-lg overflow-y-auto">
           <div className="sticky top-0 bg-white border-b px-6 py-4">
             <h3 className="text-lg font-bold text-gray-900">Course Content</h3>
@@ -717,6 +718,7 @@ const LearningPage = () => {
           <div className="p-4">
             {currentCourse.sections.map((section, sIndex) => (
               <div key={section._id} className="mb-6">
+                {/* Section Header */}
                 <div className="bg-gray-50 rounded-lg p-4 mb-3">
                   <h4 className="font-semibold text-gray-800 flex items-center">
                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded mr-3">
@@ -731,6 +733,7 @@ const LearningPage = () => {
                   )}
                 </div>
 
+                {/* Lessons */}
                 <div className="space-y-2 ml-4">
                   {section.lessons.map((lesson, lIndex) => {
                     const isCompleted = isLessonCompleted(lesson._id);
@@ -784,6 +787,29 @@ const LearningPage = () => {
                     );
                   })}
                 </div>
+
+                {/* Resources */}
+                {section.resources?.length > 0 && (
+                  <div className="ml-8 mt-4 space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">
+                      Resources
+                    </p>
+                    {section.resources.map((res, rIndex) => (
+                      <a
+                        key={res._id}
+                        href={getMediaUrl(res.fileUrl || res.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                      >
+                        <Download className="text-blue-600" size={16} />
+                        <span className="text-sm text-gray-700 truncate">
+                          {res.title || `Resource ${rIndex + 1}`}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -25,7 +25,7 @@ const lessonSchema = new mongoose.Schema({
 const resourceSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ["video", "pdf", "quiz", "assignment", "text"],
+    enum: ["video", "pdf", "quiz", "assignment", "text", "document"], // ADDED "document"
     required: true,
   },
   title: {
@@ -34,6 +34,7 @@ const resourceSchema = new mongoose.Schema({
     trim: true,
   },
   url: String, // S3 or storage link
+  fileUrl: String, // NEW: For document file URLs
   videoUrl: String, // for video resources
   duration: Number, // in minutes (for video)
   content: String, // for quiz instructions or assignment text
@@ -58,8 +59,8 @@ const sectionSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  lessons: [lessonSchema], // Added lessons array
-  resources: [resourceSchema], // Keep resources for backward compatibility
+  lessons: [lessonSchema],
+  resources: [resourceSchema],
 });
 
 const courseSchema = new mongoose.Schema(

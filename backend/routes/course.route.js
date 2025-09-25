@@ -21,17 +21,18 @@ router.get(
   authenticateToken,
   courseController.getMyEnrolledCourses
 );
+// Update your route to include documentFiles
 router.post(
   "/add-course",
   upload.fields([
-    { name: "thumbnail", maxCount: 1 }, // for course thumbnail
-    { name: "lessonVideos", maxCount: 20 }, // for lesson videos
+    { name: "thumbnail", maxCount: 1 },
+    { name: "lessonVideos", maxCount: 20 },
+    { name: "documentFiles", maxCount: 20 }, // Make sure this is included
   ]),
   authenticateToken,
   authorizePermission("create_course"),
   courseController.createCourse
 );
-
 // router.post(
 //   "/add-course",
 //   authenticateToken,
@@ -56,22 +57,10 @@ router.patch("/toggle-publish/:id", courseController.togglePublishCourse);
 // Public: list reviews for a course
 router.get("/:courseId/reviews", getCourseReviews);
 // Auth: get my review for a course
-router.get(
-  "/:courseId/my-review",
-  authenticateToken,
-  getMyReviewForCourse
-);
+router.get("/:courseId/my-review", authenticateToken, getMyReviewForCourse);
 // Auth: add or update my review
-router.post(
-  "/:courseId/reviews",
-  authenticateToken,
-  addOrUpdateReview
-);
+router.post("/:courseId/reviews", authenticateToken, addOrUpdateReview);
 // Auth: delete my review
-router.delete(
-  "/:courseId/reviews",
-  authenticateToken,
-  deleteReview
-);
+router.delete("/:courseId/reviews", authenticateToken, deleteReview);
 
 module.exports = router;

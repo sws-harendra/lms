@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner"; // optional toast for feedback
 import Link from "next/link";
+import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 const MyCourses = () => {
   const dispatch = useDispatch();
@@ -50,7 +51,7 @@ const MyCourses = () => {
             </CardHeader>
             <CardContent>
               <img
-                src={course.thumbnail}
+                src={getMediaUrl(course.thumbnail)}
                 alt={course.title}
                 className="w-full h-40 object-cover rounded-md mb-2"
               />
