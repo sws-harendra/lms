@@ -2,6 +2,67 @@ import { courseService } from "@/services/course.service";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 // Async thunks
+export const getCourseReviews = createAsyncThunk(
+  "course/getCourseReviews",
+  async ({ courseId, page = 1, limit = 10 }, { rejectWithValue }) => {
+    try {
+      const response = await courseService.getCourseReviews(courseId, {
+        page,
+        limit,
+      });
+      return { ...response, courseId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch course reviews"
+      );
+    }
+  }
+);
+
+export const getMyReviewForCourse = createAsyncThunk(
+  "course/getMyReviewForCourse",
+  async (courseId, { rejectWithValue }) => {
+    try {
+      const response = await courseService.getMyReviewForCourse(courseId);
+      return { ...response, courseId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch your review"
+      );
+    }
+  }
+);
+
+export const addOrUpdateReview = createAsyncThunk(
+  "course/addOrUpdateReview",
+  async ({ courseId, rating, comment }, { rejectWithValue }) => {
+    try {
+      const response = await courseService.addOrUpdateReview(courseId, {
+        rating,
+        comment,
+      });
+      return { ...response, courseId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit review"
+      );
+    }
+  }
+);
+
+export const deleteMyReview = createAsyncThunk(
+  "course/deleteMyReview",
+  async (courseId, { rejectWithValue }) => {
+    try {
+      const response = await courseService.deleteMyReview(courseId);
+      return { ...response, courseId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete review"
+      );
+    }
+  }
+);
 
 export const getAllCourses = createAsyncThunk(
   "course/getAllCourses",
@@ -166,8 +227,15 @@ const initialState = {
   myEnrolledcourses: [],
   publishedCourses: [],
   currentCourse: null,
+  reviews: [],
+  reviewsPagination: { total: 0, page: 1, limit: 10, totalPages: 1 },
+  myReview: null,
   categories: [],
   status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+  reviewsStatus: "idle",
+  myReviewStatus: "idle",
+  submitReviewStatus: "idle",
+  deleteReviewStatus: "idle",
   createStatus: "idle",
   updateStatus: "idle",
   deleteStatus: "idle",
@@ -454,6 +522,81 @@ const courseSlice = createSlice({
       })
       .addCase(togglePublishCourse.rejected, (state, action) => {
         state.publishStatus = "failed";
+        state.error = action.payload;
+      })
+      // Get Course Reviews
+      .addCase(getCourseReviews.pending, (state) => {
+        state.reviewsStatus = "loading";
+        state.error = null;
+      })
+      .addCase(getCourseReviews.fulfilled, (state, action) => {
+        state.reviewsStatus = "succeeded";
+        state.reviews = action.payload.reviews || [];
+        if (action.payload.pagination) {
+          state.reviewsPagination = action.payload.pagination;
+        } else {
+          state.reviewsPagination = {
+            total: state.reviews.length,
+            page: 1,
+            limit: state.reviews.length,
+            totalPages: 1,
+          };
+        }
+        state.error = null;
+      })
+      .addCase(getCourseReviews.rejected, (state, action) => {
+        state.reviewsStatus = "failed";
+        state.error = action.payload;
+      })
+      // Get my review
+      .addCase(getMyReviewForCourse.pending, (state) => {
+        state.myReviewStatus = "loading";
+      })
+      .addCase(getMyReviewForCourse.fulfilled, (state, action) => {
+        state.myReviewStatus = "succeeded";
+        state.myReview = action.payload.review || null;
+      })
+      .addCase(getMyReviewForCourse.rejected, (state, action) => {
+        state.myReviewStatus = "failed";
+        state.myReview = null;
+        state.error = action.payload;
+      })
+      // Add or update review
+      .addCase(addOrUpdateReview.pending, (state) => {
+        state.submitReviewStatus = "loading";
+      })
+      .addCase(addOrUpdateReview.fulfilled, (state, action) => {
+        state.submitReviewStatus = "succeeded";
+        const updated = action.payload.review;
+        // Update myReview
+        state.myReview = updated;
+        // Update or insert into reviews list optimistically
+        const idx = state.reviews.findIndex(
+          (r) => r._id === updated._id || (r.user?._id && updated.user && r.user._id === updated.user._id)
+        );
+        if (idx >= 0) state.reviews[idx] = updated;
+        else state.reviews.unshift(updated);
+      })
+      .addCase(addOrUpdateReview.rejected, (state, action) => {
+        state.submitReviewStatus = "failed";
+        state.error = action.payload;
+      })
+      // Delete review
+      .addCase(deleteMyReview.pending, (state) => {
+        state.deleteReviewStatus = "loading";
+      })
+      .addCase(deleteMyReview.fulfilled, (state) => {
+        state.deleteReviewStatus = "succeeded";
+        // Remove my review from list
+        if (state.myReview) {
+          state.reviews = state.reviews.filter(
+            (r) => r._id !== state.myReview._id
+          );
+        }
+        state.myReview = null;
+      })
+      .addCase(deleteMyReview.rejected, (state, action) => {
+        state.deleteReviewStatus = "failed";
         state.error = action.payload;
       });
 

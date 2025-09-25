@@ -3,7 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "next/navigation";
-import { getCourseById } from "@/lib/store/features/courseSlice";
+import {
+  getCourseById,
+  getCourseReviews,
+  getMyReviewForCourse,
+  addOrUpdateReview,
+  deleteMyReview,
+} from "@/lib/store/features/courseSlice";
 import {
   checkCourseAccess,
   getEnrollmentDetails,
@@ -29,7 +35,17 @@ const LearningPage = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
 
-  const { currentCourse, status, error } = useSelector((state) => state.course);
+  const {
+    currentCourse,
+    status,
+    error,
+    reviews,
+    reviewsStatus,
+    reviewsPagination,
+    myReview,
+    submitReviewStatus,
+    deleteReviewStatus,
+  } = useSelector((state) => state.course);
   const { currentEnrollment, courseAccess } = useSelector(
     (state) => state.enrollment
   );
@@ -42,28 +58,20 @@ const LearningPage = () => {
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState("");
 
-  // Mock reviews data - replace with actual API call
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      userName: "John Doe",
-      rating: 5,
-      review: "Excellent course! Very comprehensive and well-structured.",
-      date: "2025-09-20",
-    },
-    {
-      id: 2,
-      userName: "Jane Smith",
-      rating: 4,
-      review: "Great content, learned a lot about JavaScript fundamentals.",
-      date: "2025-09-18",
-    },
-  ]);
+  // Sync form with myReview from store
+  useEffect(() => {
+    if (myReview) {
+      setUserRating(myReview.rating || 0);
+      setUserReview(myReview.comment || "");
+    }
+  }, [myReview]);
 
   useEffect(() => {
     if (id) {
       dispatch(getCourseById(id));
       dispatch(checkCourseAccess(id));
+      dispatch(getCourseReviews({ courseId: id, page: 1, limit: 10 }));
+      dispatch(getMyReviewForCourse(id));
     }
   }, [id, dispatch]);
 
@@ -179,20 +187,33 @@ const LearningPage = () => {
     alert("Certificate download functionality would be implemented here");
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (userRating > 0 && userReview.trim()) {
-      const newReview = {
-        id: reviews.length + 1,
-        userName: "Current User", // Replace with actual user name
-        rating: userRating,
-        review: userReview,
-        date: new Date().toISOString().split("T")[0],
-      };
-      setReviews([newReview, ...reviews]);
+      try {
+        await dispatch(
+          addOrUpdateReview({
+            courseId: id,
+            rating: userRating,
+            comment: userReview,
+          })
+        ).unwrap();
+        // Refresh reviews and course header stats
+        dispatch(getCourseReviews({ courseId: id, page: 1, limit: 10 }));
+        dispatch(getCourseById(id));
+      } catch (e) {
+        // no-op, errors handled in slice
+      }
+    }
+  };
+
+  const handleDeleteMyReview = async () => {
+    try {
+      await dispatch(deleteMyReview(id)).unwrap();
       setUserRating(0);
       setUserReview("");
-      // Here you would make an API call to submit the review
-    }
+      dispatch(getCourseReviews({ courseId: id, page: 1, limit: 10 }));
+      dispatch(getCourseById(id));
+    } catch (e) {}
   };
 
   if (status === "loading")
@@ -241,8 +262,9 @@ const LearningPage = () => {
   const isLessonCompleted = (lessonId) => completedLessons.has(lessonId);
 
   const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    reviews?.length > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) /
+        reviews.length
       : 0;
 
   const tabs = [
@@ -593,13 +615,32 @@ const LearningPage = () => {
                                 placeholder="Share your experience with this course..."
                               />
                             </div>
-                            <Button
-                              onClick={handleSubmitReview}
-                              disabled={!userRating || !userReview.trim()}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              Submit Review
-                            </Button>
+                            <div className="flex items-center gap-3">
+                              <Button
+                                onClick={handleSubmitReview}
+                                disabled={
+                                  !userRating ||
+                                  !userReview.trim() ||
+                                  submitReviewStatus === "loading"
+                                }
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                {submitReviewStatus === "loading"
+                                  ? "Submitting..."
+                                  : "Submit Review"}
+                              </Button>
+                              {myReview && (
+                                <Button
+                                  variant="outline"
+                                  onClick={handleDeleteMyReview}
+                                  disabled={deleteReviewStatus === "loading"}
+                                >
+                                  {deleteReviewStatus === "loading"
+                                    ? "Deleting..."
+                                    : "Delete My Review"}
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -608,15 +649,15 @@ const LearningPage = () => {
                           <h4 className="font-semibold text-gray-900">
                             All Reviews
                           </h4>
-                          {reviews.map((review) => (
+                          {reviews?.map((review) => (
                             <div
-                              key={review.id}
+                              key={review._id || review.id}
                               className="border rounded-lg p-6"
                             >
                               <div className="flex justify-between items-start mb-3">
                                 <div>
                                   <p className="font-semibold text-gray-900">
-                                    {review.userName}
+                                    {review.user?.name || "User"}
                                   </p>
                                   <div className="flex items-center space-x-2 mt-1">
                                     <div className="flex items-center">
@@ -625,7 +666,7 @@ const LearningPage = () => {
                                           key={i}
                                           size={16}
                                           className={
-                                            i < review.rating
+                                            i < (review.rating || 0)
                                               ? "text-yellow-400 fill-current"
                                               : "text-gray-300"
                                           }
@@ -633,12 +674,16 @@ const LearningPage = () => {
                                       ))}
                                     </div>
                                     <span className="text-sm text-gray-600">
-                                      {review.date}
+                                      {review.createdAt
+                                        ? new Date(
+                                            review.createdAt
+                                          ).toLocaleDateString()
+                                        : ""}
                                     </span>
                                   </div>
                                 </div>
                               </div>
-                              <p className="text-gray-700">{review.review}</p>
+                              <p className="text-gray-700">{review.comment}</p>
                             </div>
                           ))}
                         </div>

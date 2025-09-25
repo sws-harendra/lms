@@ -85,4 +85,28 @@ export const courseService = {
     );
     return response.data;
   },
+
+  // Reviews
+  getCourseReviews: async (courseId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await axiosInstance.get(
+      `/course/${courseId}/reviews${queryString ? `?${queryString}` : ""}`
+    );
+    return response.data;
+  },
+  getMyReviewForCourse: async (courseId) => {
+    const response = await axiosInstance.get(`/course/${courseId}/my-review`);
+    return response.data;
+  },
+  addOrUpdateReview: async (courseId, { rating, comment }) => {
+    const response = await axiosInstance.post(`/course/${courseId}/reviews`, {
+      rating,
+      comment,
+    });
+    return response.data;
+  },
+  deleteMyReview: async (courseId) => {
+    const response = await axiosInstance.delete(`/course/${courseId}/reviews`);
+    return response.data;
+  },
 };

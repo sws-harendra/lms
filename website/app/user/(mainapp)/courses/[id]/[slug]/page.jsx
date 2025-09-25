@@ -30,14 +30,17 @@ import {
   Globe,
   ListChecks,
   Calendar,
-  Shield,
   Zap,
   Heart,
   Share2,
   Download,
+  Shield,
 } from "lucide-react";
 import Image from "next/image";
-import { getCourseById } from "@/lib/store/features/courseSlice";
+import {
+  getCourseById,
+  getCourseReviews,
+} from "@/lib/store/features/courseSlice";
 import { VideoPlayer } from "@/components/videoPlayer";
 import { Spinner } from "@/components/laoder";
 import {
@@ -53,7 +56,14 @@ const CourseById = () => {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const router = useRouter();
-  const { currentCourse, status, error } = useSelector((state) => state.course);
+  const {
+    currentCourse,
+    status,
+    error,
+    reviews,
+    reviewsStatus,
+    reviewsPagination,
+  } = useSelector((state) => state.course);
   const { courseAccess } = useSelector((state) => state.enrollment);
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -62,40 +72,18 @@ const CourseById = () => {
   // Add ref for video player section
   const videoPlayerRef = useRef(null);
 
-  // Mock reviews data for preview
-  const mockReviews = [
-    {
-      id: 1,
-      user: { name: "Sarah Johnson", avatar: "/api/placeholder/40/40" },
-      rating: 5,
-      comment:
-        "Excellent course! The instructor explains complex concepts in a very easy-to-understand manner. Highly recommended!",
-      date: "2024-01-15",
-      helpful: 24,
-    },
-    {
-      id: 2,
-      user: { name: "Mike Chen", avatar: "/api/placeholder/40/40" },
-      rating: 4,
-      comment:
-        "Great content and well-structured lessons. The practical examples really helped me understand the concepts better.",
-      date: "2024-01-10",
-      helpful: 18,
-    },
-    {
-      id: 3,
-      user: { name: "Emily Rodriguez", avatar: "/api/placeholder/40/40" },
-      rating: 5,
-      comment:
-        "This course exceeded my expectations. The project-based learning approach is fantastic!",
-      date: "2024-01-08",
-      helpful: 31,
-    },
-  ];
-
   useEffect(() => {
-    dispatch(getCourseById(id));
+    if (id) {
+      dispatch(getCourseById(id));
+    }
   }, [dispatch, id]);
+
+  // Fetch reviews when course is available
+  useEffect(() => {
+    if (currentCourse?._id || id) {
+      dispatch(getCourseReviews({ courseId: id, page: 1, limit: 10 }));
+    }
+  }, [dispatch, id, currentCourse?._id]);
 
   useEffect(() => {
     if (isAuthenticated && currentCourse) {
@@ -700,7 +688,7 @@ const CourseById = () => {
               </CardHeader>
               <CardContent className="p-8">
                 <div className="space-y-6">
-                  {mockReviews.map((review) => (
+                  {reviews.map((review) => (
                     <div
                       key={review.id}
                       className="border-b border-gray-100 pb-6 last:border-0"
@@ -728,25 +716,19 @@ const CourseById = () => {
                           <p className="text-gray-700 leading-relaxed mb-3">
                             {review.comment}
                           </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <button className="flex items-center gap-1 hover:text-indigo-600 transition-colors">
-                              <Heart className="h-4 w-4" />
-                              Helpful ({review.helpful})
-                            </button>
-                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
 
-                  <div className="text-center pt-4">
+                  {/* <div className="text-center pt-4">
                     <Button
                       variant="outline"
                       className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                     >
                       View All Reviews
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
               </CardContent>
             </Card>
