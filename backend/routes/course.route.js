@@ -15,6 +15,7 @@ const {
 router.get("/", courseController.getAllCourses);
 
 router.get("/all-categories", courseController.getAllCategories);
+router.post("/category", courseController.addNewCategory);
 
 router.get(
   "/my-enrolled-courses",

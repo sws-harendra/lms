@@ -499,6 +499,34 @@ const getAllCategories = async (req, res) => {
   }
 };
 
+const addNewCategory = async (req, res) => {
+  try {
+    const { name, slug, icon } = req.body;
+
+    if (!name || !slug) {
+      return res.status(400).json({ message: "Name and slug are required" });
+    }
+    // Check for existing category with same name or slug
+    const existingCategory = await CourseCategory.findOne({
+      $or: [{ name }, { slug }],
+    });
+    if (existingCategory) {
+      return res
+        .status(409)
+        .json({ message: "Category with same name or slug already exists" });
+    }
+    const newCategory = new CourseCategory({ name, slug, icon });
+    await newCategory.save();
+    res.status(201).json({
+      message: "Category created successfully",
+      category: newCategory,
+    });
+  } catch (err) {
+    console.error("Error creating category:", err);
+    res.status(500).json({ message: "Server error while creating category" });
+  }
+};
+
 const getallcoursesforpublisher = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -582,4 +610,5 @@ module.exports = {
   getMyEnrolledCourses,
   getAllCategories,
   getallcoursesforpublisher,
+  addNewCategory,
 };

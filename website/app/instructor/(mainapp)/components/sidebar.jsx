@@ -27,6 +27,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { brandName } from "@/app/contants";
 import { useDispatch } from "react-redux";
+import { logout } from "@/lib/store/features/authSlice";
 // import { logout } from "@/app/lib/store/features/authSlice"; // make sure path is correct
 
 // menuItems can contain children for collapsible menus
@@ -79,10 +80,6 @@ export default function Sidebar() {
       await dispatch(logout());
     } catch (error) {
       console.error("Logout failed", error);
-    } finally {
-      router.push("/authentication/login");
-      router.refresh();
-      window.location.reload();
     }
   };
 
