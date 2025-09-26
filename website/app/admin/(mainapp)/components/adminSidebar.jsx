@@ -44,11 +44,17 @@ const menuItems = [
       },
     ],
   },
-  { name: "My Earning", icon: Coins, href: "/admin/dashboard/earning" },
+  { name: "Total Sales", icon: Coins, href: "/admin/dashboard/earning" },
   {
-    name: "Profile",
-    icon: User,
-    href: "/admin/dashboard/profile",
+    name: "Users",
+    icon: Package,
+    children: [
+      { name: "All Users", href: "/admin/dashboard/users" },
+      {
+        name: "Create Users",
+        href: "/admin/dashboard/users/add-user",
+      },
+    ],
   },
 
   // {

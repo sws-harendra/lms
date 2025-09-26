@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./features/authSlice";
 import courseReducer from "./features/courseSlice";
 import enrollmentReducer from "./features/enrollmentSlice";
+import adminReducer from "./features/adminSlice";
 
 // import userReducer from "./features/user/userSlice";
 // import instructorReducer from "./features/instructor/instructorSlice";
@@ -14,6 +15,7 @@ export const store = configureStore({
     auth: authReducer,
     course: courseReducer,
     enrollment: enrollmentReducer,
+    admin: adminReducer,
 
     // instructor: instructorReducer,
     // admin: adminReducer,

@@ -13,4 +13,12 @@ export const adminServices = {
     const response = await axiosInstance.get(`/admin/dashboard`);
     return response.data;
   },
+  getAllUsers: async (params = {}) => {
+    const response = await axiosInstance.get(`/admin/users`, { params });
+    return response.data;
+  },
+  getUserById: async (id) => {
+    const response = await axiosInstance.get(`/admin/users/${id}`);
+    return response.data;
+  },
 };

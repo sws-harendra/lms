@@ -63,32 +63,33 @@ const AdminDashboard = () => {
     "#ef4444",
   ];
 
-  // Map enrollments per course for PieChart
-  const enrollmentsPieData = dashboardData.enrollmentsPerCourse.map(
+  // New API shape
+  const { totals, revenue } = dashboardData;
+
+  // Map enrollments per course for PieChart (items have title, count)
+  const enrollmentsPieData = (dashboardData.enrollmentsPerCourse || []).map(
     (item, idx) => ({
-      name:
-        dashboardData.recentEnrollments.find((e) => e.course._id === item._id)
-          ?.course.title || "Course",
-      value: item.count,
+      name: item.title || "Course",
+      value: item.count || 0,
       color: COLORS[idx % COLORS.length],
     })
   );
 
   // Map completion per course for BarChart
-  const completionBarData = dashboardData.completionPerCourse.map((item) => ({
-    name:
-      dashboardData.recentEnrollments.find((e) => e.course._id === item._id)
-        ?.course.slug || "Course",
-    completion: item.avgCompletion,
-  }));
-
-  // Monthly revenue
-  const revenueData = Object.entries(dashboardData.monthlyRevenue).map(
-    ([month, amount]) => ({
-      month,
-      revenue: amount,
+  const completionBarData = (dashboardData.completionPerCourse || []).map(
+    (item) => ({
+      name: item.title || "Course",
+      completion: item.avgCompletion || 0,
     })
   );
+
+  // Monthly revenue
+  const revenueData = (revenue?.monthly || []).map((m) => ({
+    month: m.month,
+    gross: m.gross || 0,
+    net: m.net || 0,
+    profit: m.profit || 0,
+  }));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -98,9 +99,7 @@ const AdminDashboard = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-gray-600">
-            Track your teaching progress and earnings
-          </p>
+          <p className="text-gray-600">Platform-wide metrics and insights</p>
         </div>
 
         {/* Top Summary Cards */}
@@ -116,9 +115,9 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold mb-1">
-                {dashboardData.totalCourses}
+                {totals?.courses ?? 0}
               </div>
-              <p className="text-indigo-100 text-sm">Active courses</p>
+              <p className="text-indigo-100 text-sm">Published: {totals?.publishedCourses ?? 0}</p>
             </CardContent>
             <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-white opacity-10 rounded-full"></div>
           </Card>
@@ -126,17 +125,15 @@ const AdminDashboard = () => {
           <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-medium opacity-90">
-                  Total Students
-                </CardTitle>
+                <CardTitle className="text-lg font-medium opacity-90">Users</CardTitle>
                 <Users className="h-8 w-8 opacity-80" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold mb-1">
-                {dashboardData.totalStudents}
+                {totals?.users ?? 0}
               </div>
-              <p className="text-emerald-100 text-sm">Enrolled students</p>
+              <p className="text-emerald-100 text-sm">Students: {totals?.students ?? 0} • Instructors: {totals?.instructors ?? 0}</p>
             </CardContent>
             <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-white opacity-10 rounded-full"></div>
           </Card>
@@ -144,19 +141,73 @@ const AdminDashboard = () => {
           <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-r from-orange-500 to-red-500 text-white">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-medium opacity-90">
-                  Total Revenue
-                </CardTitle>
+                <CardTitle className="text-lg font-medium opacity-90">Gross Revenue</CardTitle>
                 <DollarSign className="h-8 w-8 opacity-80" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold mb-1">
-                ${dashboardData.totalRevenue.toFixed(2)}
+                ${ (revenue?.grossRevenue || 0).toFixed(2) }
               </div>
-              <p className="text-orange-100 text-sm">Lifetime earnings</p>
+              <p className="text-orange-100 text-sm">Profit: ${(revenue?.platformProfit || 0).toFixed(2)} • Payout: ${(revenue?.netPayoutToInstructors || 0).toFixed(2)}</p>
             </CardContent>
             <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-white opacity-10 rounded-full"></div>
+          </Card>
+        </div>
+
+        {/* Enrollments and Top performers */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="relative overflow-hidden border-0 shadow-lg bg-white">
+            <CardHeader className="pb-2 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-medium text-gray-800">Total Enrollments</CardTitle>
+                <Award className="h-6 w-6 text-indigo-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{totals?.enrollments ?? 0}</div>
+              <p className="text-gray-500 text-sm">Active: {totals?.activeEnrollments ?? 0}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-lg bg-white">
+            <CardHeader className="pb-2 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-medium text-gray-800">Top Course (Gross)</CardTitle>
+                <TrendingUp className="h-6 w-6 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dashboardData.topCoursesByRevenue && dashboardData.topCoursesByRevenue[0] ? (
+                <div>
+                  <div className="font-semibold text-gray-900">{dashboardData.topCoursesByRevenue[0].title}</div>
+                  <p className="text-sm text-gray-500">Enrollments: {dashboardData.topCoursesByRevenue[0].enrollments}</p>
+                  <p className="text-sm text-gray-500">Gross: ${(dashboardData.topCoursesByRevenue[0].gross || 0).toFixed(2)}</p>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No data</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-lg bg-white">
+            <CardHeader className="pb-2 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-medium text-gray-800">Top Instructor (Gross)</CardTitle>
+                <TrendingUp className="h-6 w-6 text-teal-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dashboardData.topInstructorsByRevenue && dashboardData.topInstructorsByRevenue[0] ? (
+                <div>
+                  <div className="font-semibold text-gray-900">{dashboardData.topInstructorsByRevenue[0].name}</div>
+                  <p className="text-sm text-gray-500">Enrollments: {dashboardData.topInstructorsByRevenue[0].enrollments}</p>
+                  <p className="text-sm text-gray-500">Gross: ${(dashboardData.topInstructorsByRevenue[0].gross || 0).toFixed(2)}</p>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No data</p>
+              )}
+            </CardContent>
           </Card>
         </div>
 
@@ -173,50 +224,15 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart
-                  data={revenueData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="revenueGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
-                      <stop
-                        offset="95%"
-                        stopColor="#6366f1"
-                        stopOpacity={0.3}
-                      />
-                    </linearGradient>
-                  </defs>
+                <LineChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 12, fill: "#64748b" }}
-                    axisLine={{ stroke: "#e2e8f0" }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "#64748b" }}
-                    axisLine={{ stroke: "#e2e8f0" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                    }}
-                  />
-                  <Bar
-                    dataKey="revenue"
-                    fill="url(#revenueGradient)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} />
+                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} />
+                  <Tooltip contentStyle={{ backgroundColor: "white", border: "none", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }} />
+                  <Line type="monotone" dataKey="gross" stroke="#6366f1" strokeWidth={2} dot={false} name="Gross" />
+                  <Line type="monotone" dataKey="net" stroke="#10b981" strokeWidth={2} dot={false} name="Net" />
+                  <Line type="monotone" dataKey="profit" stroke="#f59e0b" strokeWidth={2} dot={false} name="Profit" />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -331,7 +347,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-4">
-              {dashboardData.recentEnrollments.map((enrollment) => (
+              {(dashboardData.recentEnrollments || []).map((enrollment) => (
                 <div
                   key={enrollment._id}
                   className="flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gradient-to-r from-white to-gray-50/50 hover:shadow-md transition-all duration-200"
@@ -339,60 +355,47 @@ const AdminDashboard = () => {
                   <div className="flex items-center space-x-4">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 overflow-hidden flex items-center justify-center shadow-lg">
-                        {enrollment.user.profileImage ? (
-                          <img
-                            src={enrollment.user.profileImage}
-                            alt={enrollment.user.name}
-                            className="w-full h-full object-cover"
-                          />
+                        {enrollment.user?.profileImage ? (
+                          <img src={enrollment.user?.profileImage} alt={enrollment.user?.name || "User"} className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-white font-semibold text-lg">
-                            {enrollment.user.name[0].toUpperCase()}
+                            {enrollment.user?.name?.[0]?.toUpperCase() || "U"}
                           </span>
                         )}
                       </div>
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">
-                        {enrollment.user.name}
-                      </p>
-                      <p className="text-sm text-indigo-600 font-medium">
-                        {enrollment.course.title}
-                      </p>
+                      <p className="font-semibold text-gray-900">{enrollment.user?.name || "Unknown User"}</p>
+                      <p className="text-sm text-indigo-600 font-medium">{enrollment.course?.title || "Unknown Course"}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <CreditCard className="h-3 w-3 text-gray-400" />
                         <p className="text-xs text-gray-500">
-                          {enrollment.payment.paymentMethod} • $
-                          {enrollment.payment.amount}
+                          {enrollment.payment?.paymentMethod || "N/A"} • $
+                          {Number(enrollment.payment?.amount || 0).toFixed(2)}
                         </p>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="w-32 mb-2">
-                      <Progress
-                        value={enrollment.progress.completionPercentage}
-                        className="h-2"
-                      />
+                      <Progress value={enrollment.progress?.completionPercentage || 0} className="h-2" />
                     </div>
                     <div className="flex items-center justify-end space-x-2">
-                      <span className="text-sm font-semibold text-gray-700">
-                        {enrollment.progress.completionPercentage}%
-                      </span>
+                      <span className="text-sm font-semibold text-gray-700">{enrollment.progress?.completionPercentage || 0}%</span>
                       <Badge
                         variant={
-                          enrollment.progress.completionPercentage > 75
+                          (enrollment.progress?.completionPercentage || 0) > 75
                             ? "success"
-                            : enrollment.progress.completionPercentage > 50
+                            : (enrollment.progress?.completionPercentage || 0) > 50
                             ? "warning"
                             : "secondary"
                         }
                         className="text-xs"
                       >
-                        {enrollment.progress.completionPercentage > 75
+                        {(enrollment.progress?.completionPercentage || 0) > 75
                           ? "Excellent"
-                          : enrollment.progress.completionPercentage > 50
+                          : (enrollment.progress?.completionPercentage || 0) > 50
                           ? "Good"
                           : "Started"}
                       </Badge>
