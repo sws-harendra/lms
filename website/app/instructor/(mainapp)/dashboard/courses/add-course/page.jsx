@@ -33,6 +33,7 @@ import {
   getAllCategories,
 } from "@/lib/store/features/courseSlice";
 import { useDispatch, useSelector } from "react-redux";
+import * as courseActions from "@/lib/store/features/courseSlice";
 
 export default function EnhancedCourseForm() {
   const dispatch = useDispatch();
@@ -40,7 +41,7 @@ export default function EnhancedCourseForm() {
   let isLoading = status == "loading";
 
   useEffect(() => {
-    dispatch(getAllCategories());
+    dispatch(courseActions.getAllCategories());
   }, []);
 
   // Basic course info
@@ -90,6 +91,13 @@ export default function EnhancedCourseForm() {
     },
   ]);
 
+  // Add Category Modal state
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatSlug, setNewCatSlug] = useState("");
+  const [catError, setCatError] = useState("");
+  const [catSubmitting, setCatSubmitting] = useState(false);
+
   // Auto-generate slug from title
   const generateSlug = (title) => {
     return title
@@ -104,6 +112,41 @@ export default function EnhancedCourseForm() {
     setTitle(value);
     if (!slug) {
       setSlug(generateSlug(value));
+    }
+  };
+
+  // Auto-generate category slug from category name
+  const handleNewCatNameChange = (value) => {
+    setNewCatName(value);
+    if (!newCatSlug) {
+      setNewCatSlug(generateSlug(value));
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    setCatError("");
+    const name = newCatName.trim();
+    const slugVal = newCatSlug.trim();
+    if (!name || !slugVal) {
+      setCatError("Name and slug are required");
+      return;
+    }
+    try {
+      setCatSubmitting(true);
+      const res = await dispatch(courseActions.createCategory({ name, slug: slugVal })).unwrap();
+      const created = res.category || res;
+      if (created?._id) {
+        setCategory(created._id);
+      }
+      // Reset and close modal
+      setShowAddCategoryModal(false);
+      setNewCatName("");
+      setNewCatSlug("");
+      setCatError("");
+    } catch (e) {
+      setCatError(typeof e === "string" ? e : e?.message || "Failed to create category");
+    } finally {
+      setCatSubmitting(false);
     }
   };
 
@@ -342,6 +385,45 @@ export default function EnhancedCourseForm() {
 
   return (
     <div className="mx-auto p-6 space-y-6">
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddCategoryModal(false)} />
+          <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-10">
+            <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newCatName">Name *</Label>
+                <Input
+                  id="newCatName"
+                  value={newCatName}
+                  onChange={(e) => handleNewCatNameChange(e.target.value)}
+                  placeholder="e.g. Web Development"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newCatSlug">Slug *</Label>
+                <Input
+                  id="newCatSlug"
+                  value={newCatSlug}
+                  onChange={(e) => setNewCatSlug(e.target.value)}
+                  placeholder="web-development"
+                />
+              </div>
+              {catError && (
+                <p className="text-sm text-red-600">{catError}</p>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowAddCategoryModal(false)} disabled={catSubmitting}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleCreateCategory} disabled={catSubmitting}>
+                {catSubmitting ? "Adding..." : "Add Category"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
@@ -412,6 +494,11 @@ export default function EnhancedCourseForm() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <div className="pt-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setShowAddCategoryModal(true)}>
+                        <Plus className="h-4 w-4 mr-2" /> Add Category
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

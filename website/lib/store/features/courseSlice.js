@@ -92,6 +92,21 @@ export const getAllCategories = createAsyncThunk(
   }
 );
 
+// Create a new category
+export const createCategory = createAsyncThunk(
+  "course/createCategory",
+  async ({ name, slug }, { rejectWithValue }) => {
+    try {
+      const response = await courseService.createCategory({ name, slug });
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create category"
+      );
+    }
+  }
+);
+
 export const getMyEnrolledCourses = createAsyncThunk(
   "course/getMyEnrolledCourses",
   async (_, { rejectWithValue }) => {
@@ -469,6 +484,27 @@ const courseSlice = createSlice({
 
       .addCase(getAllCategories.rejected, (state, action) => {
         state.status = "failed";
+        state.error = action.payload;
+      })
+      // Create Category
+      .addCase(createCategory.pending, (state) => {
+        // no-op for now, could add a dedicated status if needed
+      })
+      .addCase(createCategory.fulfilled, (state, action) => {
+        const newCat = action.payload.category || action.payload;
+        if (newCat) {
+          // Prepend new category and ensure uniqueness by slug or _id
+          const existsIdx = state.categories.findIndex(
+            (c) => c._id === newCat._id || c.slug === newCat.slug
+          );
+          if (existsIdx >= 0) {
+            state.categories[existsIdx] = newCat;
+          } else {
+            state.categories.unshift(newCat);
+          }
+        }
+      })
+      .addCase(createCategory.rejected, (state, action) => {
         state.error = action.payload;
       })
       // Toggle Publish Course

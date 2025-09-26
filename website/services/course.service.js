@@ -21,6 +21,11 @@ export const courseService = {
     const response = await axiosInstance.get(`/course/all-categories`);
     return response.data;
   },
+  // Create a new category
+  createCategory: async ({ name, slug }) => {
+    const response = await axiosInstance.post(`/course/category`, { name, slug });
+    return response.data;
+  },
   // Get published courses only
   getPublishedCourses: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
