@@ -22,6 +22,7 @@ import { brandName } from "@/app/contants";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/lib/store/features/authSlice";
 import Link from "next/link";
+import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 const UserNavbar = () => {
   const {
@@ -150,7 +151,11 @@ const UserNavbar = () => {
                 className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+                  {user?.profileImage ? (
+                    <img src={getMediaUrl(user.profileImage)} />
+                  ) : (
+                    <User className="h-4 w-4 text-white" />
+                  )}
                 </div>
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -165,7 +170,9 @@ const UserNavbar = () => {
                       {user?.email || "john.doe@university.edu"}
                     </p>
                   </div>
-                  <ProfileMenuItem icon={User} text="Profile" />
+                  <Link href={"/user/profile"}>
+                    <ProfileMenuItem icon={User} text="Profile" />
+                  </Link>
                   <Link href={"/user/mycourses"}>
                     <ProfileMenuItem icon={Book} text="My Courses" />
                   </Link>
