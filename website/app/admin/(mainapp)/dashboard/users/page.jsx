@@ -12,7 +12,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -29,7 +35,8 @@ import { adminServices } from "@/services/admin/admin.service";
 const AllUsers = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { users, usersStatus, usersError, pagination, summary, filters } = useSelector((s) => s.admin);
+  const { users, usersStatus, usersError, pagination, summary, filters } =
+    useSelector((s) => s.admin);
 
   const [localSearch, setLocalSearch] = useState(filters.search || "");
 
@@ -43,9 +50,18 @@ const AllUsers = () => {
         role: filters.role,
       })
     );
-  }, [dispatch, pagination.page, pagination.limit, filters.search, filters.role]);
+  }, [
+    dispatch,
+    pagination.page,
+    pagination.limit,
+    filters.search,
+    filters.role,
+  ]);
 
-  const totalPages = useMemo(() => pagination.totalPages || 0, [pagination.totalPages]);
+  const totalPages = useMemo(
+    () => pagination.totalPages || 0,
+    [pagination.totalPages]
+  );
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -64,7 +80,9 @@ const AllUsers = () => {
   };
 
   const handleDelete = async (id) => {
-    const ok = window.confirm("Delete this user? This action cannot be undone.");
+    const ok = window.confirm(
+      "Delete this user? This action cannot be undone."
+    );
     if (!ok) return;
     try {
       await adminServices.deleteUser(id);
@@ -87,14 +105,22 @@ const AllUsers = () => {
       <div className="flex items-center justify-between mb-4 gap-4">
         <h1 className="text-2xl font-semibold">Users</h1>
         <div className="flex-1" />
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 max-w-md w-full">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center gap-2 max-w-md w-full"
+        >
           <Input
             placeholder="Search by name or email..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
           />
-          <Select onValueChange={handleRoleChange} value={filters.role || "all"}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter role" /></SelectTrigger>
+          <Select
+            onValueChange={handleRoleChange}
+            value={filters.role || "all"}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Filter role" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
@@ -115,25 +141,33 @@ const AllUsers = () => {
           <CardHeader>
             <CardTitle>Total</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{summary.totalUsers || 0}</CardContent>
+          <CardContent className="text-2xl font-bold">
+            {summary.totalUsers || 0}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Admins</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{summary.byRole?.admin || 0}</CardContent>
+          <CardContent className="text-2xl font-bold">
+            {summary.byRole?.admin || 0}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Instructors</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{summary.byRole?.instructor || 0}</CardContent>
+          <CardContent className="text-2xl font-bold">
+            {summary.byRole?.instructor || 0}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Users</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{summary.byRole?.user || 0}</CardContent>
+          <CardContent className="text-2xl font-bold">
+            {summary.byRole?.user || 0}
+          </CardContent>
         </Card>
       </div>
 
@@ -194,12 +228,23 @@ const AllUsers = () => {
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button variant="outline" asChild>
-                    <Link href={`/admin/(mainapp)/dashboard/users/${u._id}`}>View</Link>
+                    <Link href={`/admin/(mainapp)/dashboard/users/${u._id}`}>
+                      View
+                    </Link>
                   </Button>
-                  <Button variant="secondary" asChild>
-                    <Link href={`/admin/(mainapp)/dashboard/users/${u._id}/edit`}>Edit</Link>
+                  {/* <Button variant="secondary" asChild>
+                    <Link
+                      href={`/admin/(mainapp)/dashboard/users/${u._id}/edit`}
+                    >
+                      Edit
+                    </Link>
+                  </Button> */}
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDelete(u._id)}
+                  >
+                    Delete
                   </Button>
-                  <Button variant="destructive" onClick={() => handleDelete(u._id)}>Delete</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -214,10 +259,18 @@ const AllUsers = () => {
             Page {pagination.page} of {totalPages}
           </div>
           <div className="space-x-2">
-            <Button variant="outline" onClick={() => goToPage(pagination.page - 1)} disabled={pagination.page <= 1}>
+            <Button
+              variant="outline"
+              onClick={() => goToPage(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
               Prev
             </Button>
-            <Button variant="outline" onClick={() => goToPage(pagination.page + 1)} disabled={pagination.page >= totalPages}>
+            <Button
+              variant="outline"
+              onClick={() => goToPage(pagination.page + 1)}
+              disabled={pagination.page >= totalPages}
+            >
               Next
             </Button>
           </div>

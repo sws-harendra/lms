@@ -16,6 +16,8 @@ router.get("/", courseController.getAllCourses);
 
 router.get("/all-categories", courseController.getAllCategories);
 router.post("/category", courseController.addNewCategory);
+router.put("/category/:id", courseController.updateCategory);
+router.delete("/category/:id", courseController.deleteCategory);
 
 router.get(
   "/my-enrolled-courses",

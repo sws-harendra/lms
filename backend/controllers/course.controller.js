@@ -501,7 +501,7 @@ const getAllCategories = async (req, res) => {
 
 const addNewCategory = async (req, res) => {
   try {
-    const { name, slug, icon } = req.body;
+    const { name, slug, icon, description } = req.body;
 
     if (!name || !slug) {
       return res.status(400).json({ message: "Name and slug are required" });
@@ -515,7 +515,7 @@ const addNewCategory = async (req, res) => {
         .status(409)
         .json({ message: "Category with same name or slug already exists" });
     }
-    const newCategory = new CourseCategory({ name, slug, icon });
+    const newCategory = new CourseCategory({ name, slug, icon, description });
     await newCategory.save();
     res.status(201).json({
       message: "Category created successfully",
@@ -524,6 +524,64 @@ const addNewCategory = async (req, res) => {
   } catch (err) {
     console.error("Error creating category:", err);
     res.status(500).json({ message: "Server error while creating category" });
+  }
+};
+
+// Update a category
+const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, slug, description, icon, isActive } = req.body;
+
+    // Ensure uniqueness for name/slug if they are being updated
+    if (name || slug) {
+      const conflict = await CourseCategory.findOne({
+        _id: { $ne: id },
+        $or: [
+          ...(name ? [{ name }] : []),
+          ...(slug ? [{ slug }] : []),
+        ],
+      });
+      if (conflict) {
+        return res
+          .status(409)
+          .json({ message: "Category with same name or slug already exists" });
+      }
+    }
+
+    const updated = await CourseCategory.findByIdAndUpdate(
+      id,
+      { name, slug, description, icon, isActive },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ message: "Category not found" });
+    res.status(200).json({ message: "Category updated successfully", category: updated });
+  } catch (err) {
+    console.error("Error updating category:", err);
+    res.status(500).json({ message: "Server error while updating category" });
+  }
+};
+
+// Delete a category (prevent if any Course references it)
+const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const exists = await CourseCategory.findById(id);
+    if (!exists) return res.status(404).json({ message: "Category not found" });
+
+    const linkedCoursesCount = await Course.countDocuments({ category: id });
+    if (linkedCoursesCount > 0) {
+      return res.status(400).json({
+        message: "Cannot delete category that is linked to existing courses",
+        linkedCoursesCount,
+      });
+    }
+
+    await CourseCategory.findByIdAndDelete(id);
+    res.status(200).json({ message: "Category deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting category:", err);
+    res.status(500).json({ message: "Server error while deleting category" });
   }
 };
 
@@ -611,4 +669,6 @@ module.exports = {
   getAllCategories,
   getallcoursesforpublisher,
   addNewCategory,
+  updateCategory,
+  deleteCategory,
 };

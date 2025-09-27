@@ -22,8 +22,27 @@ export const courseService = {
     return response.data;
   },
   // Create a new category
-  createCategory: async ({ name, slug }) => {
-    const response = await axiosInstance.post(`/course/category`, { name, slug });
+  createCategory: async ({ name, slug, description = "", icon }) => {
+    const payload = { name, slug };
+    if (description !== undefined) payload.description = description;
+    if (icon !== undefined) payload.icon = icon;
+    const response = await axiosInstance.post(`/course/category`, payload);
+    return response.data;
+  },
+  // Update an existing category
+  updateCategory: async (id, { name, slug, description, icon, isActive }) => {
+    const payload = {};
+    if (name !== undefined) payload.name = name;
+    if (slug !== undefined) payload.slug = slug;
+    if (description !== undefined) payload.description = description;
+    if (icon !== undefined) payload.icon = icon;
+    if (isActive !== undefined) payload.isActive = isActive;
+    const response = await axiosInstance.put(`/course/category/${id}`, payload);
+    return response.data;
+  },
+  // Delete a category
+  deleteCategory: async (id) => {
+    const response = await axiosInstance.delete(`/course/category/${id}`);
     return response.data;
   },
   // Get published courses only

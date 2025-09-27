@@ -45,7 +45,7 @@ const menuItems = [
   //     },
   //   ],
   // },
-  { name: "Total Sales", icon: Coins, href: "/admin/dashboard/earning" },
+  // { name: "Total Sales", icon: Coins, href: "/admin/dashboard/earning" },
   {
     name: "Users",
     icon: Package,
