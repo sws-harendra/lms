@@ -352,6 +352,18 @@ const createCourse = async (req, res) => {
       return res.status(400).json({ message: "Invalid sections JSON" });
     }
 
+    // Parse optional course-level summaryQuiz
+    let summaryQuiz = undefined;
+    try {
+      if (typeof req.body.summaryQuiz === "string") {
+        summaryQuiz = JSON.parse(req.body.summaryQuiz);
+      } else if (req.body.summaryQuiz && typeof req.body.summaryQuiz === "object") {
+        summaryQuiz = req.body.summaryQuiz;
+      }
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid summaryQuiz JSON" });
+    }
+
     // Handle thumbnail upload
     let thumbnailUrl = req.body.thumbnail || "";
     if (req.files?.thumbnail?.[0]) {
@@ -369,7 +381,7 @@ const createCourse = async (req, res) => {
     // Process sections with both videos and documents
     const processedSections = sectionsData.map((section) => {
       // Process lessons with video files
-      const lessons = section.lessons.map((lesson) => {
+      const lessons = (section.lessons || []).map((lesson) => {
         if (!lesson.videoUrl && uploadedVideos[videoIndex]) {
           lesson.videoUrl = `/uploads/${uploadedVideos[videoIndex].filename}`;
           videoIndex++;
@@ -378,7 +390,7 @@ const createCourse = async (req, res) => {
       });
 
       // NEW: Process resources with document files
-      const resources = section.resources.map((resource) => {
+      const resources = (section.resources || []).map((resource) => {
         // For document type resources, assign the uploaded file
         if (resource.type === "document" && uploadedDocuments[documentIndex]) {
           resource.fileUrl = `/uploads/${uploadedDocuments[documentIndex].filename}`;
@@ -387,7 +399,12 @@ const createCourse = async (req, res) => {
         return resource;
       });
 
-      return { ...section, lessons, resources };
+      // Handle quizzes (cap to 3 per section)
+      const quizzes = Array.isArray(section.quizzes)
+        ? section.quizzes.slice(0, 3)
+        : [];
+
+      return { ...section, lessons, resources, quizzes };
     });
 
     // Calculate total duration
@@ -414,6 +431,7 @@ const createCourse = async (req, res) => {
       certificateEnabled,
       createdBy: req.user?.id || instructor,
       sections: processedSections,
+      summaryQuiz,
       totalDuration,
       level,
       language,
@@ -442,6 +460,7 @@ const createCourse = async (req, res) => {
     res.status(500).json({ message: "Server error while creating course" });
   }
 };
+
 // Get courses by category
 const getCoursesByCategory = async (req, res) => {
   try {

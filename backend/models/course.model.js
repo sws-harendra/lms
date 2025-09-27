@@ -1,5 +1,75 @@
 const mongoose = require("mongoose");
 
+// Quiz question schema
+const quizQuestionSchema = new mongoose.Schema({
+  question: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  options: {
+    type: [String],
+    validate: {
+      validator: function (arr) {
+        return Array.isArray(arr) && arr.length >= 2 && arr.length <= 10;
+      },
+      message: "A question must have between 2 and 10 options",
+    },
+    required: true,
+  },
+  correctOptionIndex: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  points: {
+    type: Number,
+    default: 1,
+    min: 0,
+  },
+  explanation: String,
+});
+
+// Quiz schema (can be used in sections and as a summary quiz)
+const quizSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  description: String,
+  timeLimit: {
+    // seconds; 0 or undefined means unlimited
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  passScore: {
+    // minimum score to pass; if 0, any score passes
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  isFree: {
+    type: Boolean,
+    default: false,
+  },
+  order: {
+    type: Number,
+    default: 0,
+  },
+  questions: {
+    type: [quizQuestionSchema],
+    validate: {
+      validator: function (arr) {
+        return Array.isArray(arr) && arr.length > 0;
+      },
+      message: "A quiz must have at least one question",
+    },
+    required: true,
+  },
+});
+
 const lessonSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -61,6 +131,17 @@ const sectionSchema = new mongoose.Schema({
   },
   lessons: [lessonSchema],
   resources: [resourceSchema],
+  // Up to 3 quizzes per section
+  quizzes: {
+    type: [quizSchema],
+    validate: {
+      validator: function (arr) {
+        return !arr || arr.length <= 3;
+      },
+      message: "A section can have at most 3 quizzes",
+    },
+    default: [],
+  },
 });
 
 const courseSchema = new mongoose.Schema(
@@ -118,6 +199,12 @@ const courseSchema = new mongoose.Schema(
     },
 
     sections: [sectionSchema],
+
+    // Optional course-level summary quiz (single)
+    summaryQuiz: {
+      type: quizSchema,
+      required: false,
+    },
 
     enrolledUsers: [
       {

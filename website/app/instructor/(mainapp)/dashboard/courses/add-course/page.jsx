@@ -88,8 +88,12 @@ export default function EnhancedCourseForm() {
         },
       ],
       resources: [],
+      quizzes: [],
     },
   ]);
+
+  // Summary quiz (optional, single)
+  const [summaryQuiz, setSummaryQuiz] = useState(null);
 
   // Add Category Modal state
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
@@ -216,6 +220,7 @@ export default function EnhancedCourseForm() {
           },
         ],
         resources: [],
+        quizzes: [],
       },
     ]);
   };
@@ -288,6 +293,189 @@ export default function EnhancedCourseForm() {
     setSections(newSections);
   };
 
+  // Quizzes management for sections
+  const addQuiz = (sectionIndex) => {
+    const newSections = [...sections];
+    const quizzes = newSections[sectionIndex].quizzes || [];
+    if (quizzes.length >= 3) return; // cap at 3
+    quizzes.push({
+      title: "",
+      description: "",
+      timeLimit: 0,
+      passScore: 0,
+      isFree: false,
+      order: quizzes.length,
+      questions: [
+        {
+          question: "",
+          options: ["", ""],
+          correctOptionIndex: 0,
+          points: 1,
+          explanation: "",
+        },
+      ],
+    });
+    newSections[sectionIndex].quizzes = quizzes;
+    setSections(newSections);
+  };
+
+  const removeQuiz = (sectionIndex, quizIndex) => {
+    const newSections = [...sections];
+    newSections[sectionIndex].quizzes.splice(quizIndex, 1);
+    setSections(newSections);
+  };
+
+  const updateQuizField = (sectionIndex, quizIndex, field, value) => {
+    const newSections = [...sections];
+    newSections[sectionIndex].quizzes[quizIndex][field] = value;
+    setSections(newSections);
+  };
+
+  const addQuestion = (sectionIndex, quizIndex) => {
+    const newSections = [...sections];
+    newSections[sectionIndex].quizzes[quizIndex].questions.push({
+      question: "",
+      options: ["", ""],
+      correctOptionIndex: 0,
+      points: 1,
+      explanation: "",
+    });
+    setSections(newSections);
+  };
+
+  const removeQuestion = (sectionIndex, quizIndex, questionIndex) => {
+    const newSections = [...sections];
+    const qs = newSections[sectionIndex].quizzes[quizIndex].questions;
+    if (qs.length > 1) {
+      qs.splice(questionIndex, 1);
+      setSections(newSections);
+    }
+  };
+
+  const updateQuestionField = (sectionIndex, quizIndex, questionIndex, field, value) => {
+    const newSections = [...sections];
+    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex][field] = value;
+    setSections(newSections);
+  };
+
+  const addOption = (sectionIndex, quizIndex, questionIndex) => {
+    const newSections = [...sections];
+    const opts = newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex].options;
+    if (opts.length < 10) {
+      opts.push("");
+      setSections(newSections);
+    }
+  };
+
+  const removeOption = (sectionIndex, quizIndex, questionIndex, optionIndex) => {
+    const newSections = [...sections];
+    const q = newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex];
+    if (q.options.length > 2) {
+      q.options.splice(optionIndex, 1);
+      if (q.correctOptionIndex >= q.options.length) {
+        q.correctOptionIndex = 0;
+      }
+      setSections(newSections);
+    }
+  };
+
+  const updateOption = (sectionIndex, quizIndex, questionIndex, optionIndex, value) => {
+    const newSections = [...sections];
+    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex].options[optionIndex] = value;
+    setSections(newSections);
+  };
+
+  const setCorrectOption = (sectionIndex, quizIndex, questionIndex, optionIndex) => {
+    const newSections = [...sections];
+    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex].correctOptionIndex = optionIndex;
+    setSections(newSections);
+  };
+
+  // Summary quiz handlers
+  const initSummaryQuiz = () => {
+    setSummaryQuiz({
+      title: "",
+      description: "",
+      timeLimit: 0,
+      passScore: 0,
+      isFree: false,
+      order: 0,
+      questions: [
+        { question: "", options: ["", ""], correctOptionIndex: 0, points: 1, explanation: "" },
+      ],
+    });
+  };
+
+  const updateSummaryQuizField = (field, value) => {
+    setSummaryQuiz((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const addSummaryQuestion = () => {
+    setSummaryQuiz((prev) => ({
+      ...prev,
+      questions: [
+        ...prev.questions,
+        { question: "", options: ["", ""], correctOptionIndex: 0, points: 1, explanation: "" },
+      ],
+    }));
+  };
+
+  const removeSummaryQuestion = (qIndex) => {
+    setSummaryQuiz((prev) => ({
+      ...prev,
+      questions: prev.questions.length > 1 ? prev.questions.filter((_, i) => i !== qIndex) : prev.questions,
+    }));
+  };
+
+  const updateSummaryQuestionField = (qIndex, field, value) => {
+    setSummaryQuiz((prev) => {
+      const qs = [...prev.questions];
+      qs[qIndex] = { ...qs[qIndex], [field]: value };
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const addSummaryOption = (qIndex) => {
+    setSummaryQuiz((prev) => {
+      const qs = [...prev.questions];
+      if (qs[qIndex].options.length < 10) {
+        qs[qIndex] = { ...qs[qIndex], options: [...qs[qIndex].options, ""] };
+      }
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const removeSummaryOption = (qIndex, optIndex) => {
+    setSummaryQuiz((prev) => {
+      const qs = [...prev.questions];
+      if (qs[qIndex].options.length > 2) {
+        const newOpts = qs[qIndex].options.filter((_, i) => i !== optIndex);
+        let correct = qs[qIndex].correctOptionIndex;
+        if (correct >= newOpts.length) correct = 0;
+        qs[qIndex] = { ...qs[qIndex], options: newOpts, correctOptionIndex: correct };
+      }
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const updateSummaryOption = (qIndex, optIndex, value) => {
+    setSummaryQuiz((prev) => {
+      const qs = [...prev.questions];
+      const newOpts = [...qs[qIndex].options];
+      newOpts[optIndex] = value;
+      qs[qIndex] = { ...qs[qIndex], options: newOpts };
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const setSummaryCorrectOption = (qIndex, optIndex) => {
+    setSummaryQuiz((prev) => {
+      const qs = [...prev.questions];
+      qs[qIndex] = { ...qs[qIndex], correctOptionIndex: optIndex };
+      return { ...prev, questions: qs };
+    });
+  };
+
   // Form submission - UPDATED FOR DOCUMENT NOTES
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -347,7 +535,7 @@ export default function EnhancedCourseForm() {
         }
       });
     });
-    // Sections data
+    // Sections data (including quizzes)
     const sectionsData = sections.map((section) => ({
       title: section.title,
       description: section.description,
@@ -369,9 +557,44 @@ export default function EnhancedCourseForm() {
         order: resource.order,
         // File will be handled separately in backend
       })),
+      quizzes: (section.quizzes || []).slice(0, 3).map((quiz, idx) => ({
+        title: quiz.title,
+        description: quiz.description,
+        timeLimit: quiz.timeLimit ? parseInt(quiz.timeLimit) : 0,
+        passScore: quiz.passScore ? parseInt(quiz.passScore) : 0,
+        isFree: !!quiz.isFree,
+        order: idx,
+        questions: (quiz.questions || []).map((q) => ({
+          question: q.question,
+          options: (q.options || []).slice(0, 10),
+          correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+          points: q.points ? parseInt(q.points) : 1,
+          explanation: q.explanation || "",
+        })),
+      })),
     }));
 
     formData.append("sections", JSON.stringify(sectionsData));
+
+    // Optional summary quiz
+    if (summaryQuiz && summaryQuiz.title && (summaryQuiz.questions || []).length > 0) {
+      const normalizedSummary = {
+        title: summaryQuiz.title,
+        description: summaryQuiz.description || "",
+        timeLimit: summaryQuiz.timeLimit ? parseInt(summaryQuiz.timeLimit) : 0,
+        passScore: summaryQuiz.passScore ? parseInt(summaryQuiz.passScore) : 0,
+        isFree: !!summaryQuiz.isFree,
+        order: 0,
+        questions: (summaryQuiz.questions || []).map((q) => ({
+          question: q.question,
+          options: (q.options || []).slice(0, 10),
+          correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+          points: q.points ? parseInt(q.points) : 1,
+          explanation: q.explanation || "",
+        })),
+      };
+      formData.append("summaryQuiz", JSON.stringify(normalizedSummary));
+    }
 
     console.log("Form data ready for submission:");
 
@@ -638,6 +861,112 @@ export default function EnhancedCourseForm() {
                 </div>
               </TabsContent>
 
+              {/* Summary Quiz (Optional) */}
+              <TabsContent value="content" className="space-y-6">
+                <Card className="border-2">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Course Summary Quiz (Optional)</CardTitle>
+                      {!summaryQuiz && (
+                        <Button type="button" variant="outline" size="sm" onClick={initSummaryQuiz}>
+                          <Plus className="h-4 w-4 mr-2" /> Add Summary Quiz
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  {summaryQuiz && (
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                          placeholder="Summary quiz title"
+                          value={summaryQuiz.title}
+                          onChange={(e) => updateSummaryQuizField("title", e.target.value)}
+                          required
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Time limit (seconds)"
+                          value={summaryQuiz.timeLimit}
+                          onChange={(e) => updateSummaryQuizField("timeLimit", parseInt(e.target.value || "0"))}
+                          min={0}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Pass score"
+                          value={summaryQuiz.passScore}
+                          onChange={(e) => updateSummaryQuizField("passScore", parseInt(e.target.value || "0"))}
+                          min={0}
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`summary-free`}
+                            checked={!!summaryQuiz.isFree}
+                            onCheckedChange={(checked) => updateSummaryQuizField("isFree", checked)}
+                          />
+                          <Label htmlFor={`summary-free`}>Free Preview</Label>
+                        </div>
+                      </div>
+                      <Textarea
+                        placeholder="Summary quiz description"
+                        value={summaryQuiz.description || ""}
+                        onChange={(e) => updateSummaryQuizField("description", e.target.value)}
+                      />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-sm">Questions</div>
+                          <Button type="button" size="sm" variant="outline" onClick={addSummaryQuestion}>
+                            <Plus className="h-4 w-4 mr-2" /> Add Question
+                          </Button>
+                        </div>
+                        {summaryQuiz.questions.map((ques, qqIdx) => (
+                          <div key={qqIdx} className="border rounded-md p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm">Q{qqIdx + 1}</div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeSummaryQuestion(qqIdx)}
+                                className="text-red-600"
+                                disabled={summaryQuiz.questions.length === 1}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Input
+                              placeholder="Question text"
+                              value={ques.question}
+                              onChange={(e) => updateSummaryQuestionField(qqIdx, "question", e.target.value)}
+                              required
+                            />
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm">Options</div>
+                                <Button type="button" size="sm" variant="outline" onClick={() => addSummaryOption(qqIdx)} disabled={ques.options.length >= 10}>
+                                  <Plus className="h-4 w-4 mr-2" /> Add Option
+                                </Button>
+                              </div>
+                              {ques.options.map((opt, ooIdx) => (
+                                <div key={ooIdx} className="flex items-center gap-2">
+                                  <input type="radio" name={`summary-correct-${qqIdx}`} checked={ques.correctOptionIndex === ooIdx} onChange={() => setSummaryCorrectOption(qqIdx, ooIdx)} />
+                                  <Input value={opt} onChange={(e) => updateSummaryOption(qqIdx, ooIdx, e.target.value)} placeholder={`Option ${ooIdx + 1}`} />
+                                  <Button type="button" size="sm" variant="ghost" onClick={() => removeSummaryOption(qqIdx, ooIdx)} disabled={ques.options.length === 2} className="text-red-600">
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                              <Input type="number" min={0} value={ques.points ?? 1} onChange={(e) => updateSummaryQuestionField(qqIdx, "points", parseInt(e.target.value || "0"))} placeholder="Points" />
+                              <Input value={ques.explanation || ""} onChange={(e) => updateSummaryQuestionField(qqIdx, "explanation", e.target.value)} placeholder="Explanation (optional)" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              </TabsContent>
               {/* Content Tab - UPDATED FOR DOCUMENT NOTES */}
               <TabsContent value="content" className="space-y-6">
                 <div className="space-y-6">
@@ -903,6 +1232,16 @@ export default function EnhancedCourseForm() {
                                 <File className="h-4 w-4 mr-2" />
                                 Document Notes
                               </Button>
+                              <Button
+                                type="button"
+                                onClick={() => addQuiz(sIdx)}
+                                variant="outline"
+                                size="sm"
+                                disabled={(section.quizzes || []).length >= 3}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Quiz (max 3)
+                              </Button>
                             </div>
                           </div>
                           {section.resources.map((resource, rIdx) => (
@@ -1071,6 +1410,110 @@ export default function EnhancedCourseForm() {
                             </Card>
                           ))}
                         </div>
+                        {/* Quizzes for this section */}
+                        {(section.quizzes || []).length > 0 && (
+                          <div className="space-y-4 mt-6">
+                            <h4 className="font-medium">Section Quizzes</h4>
+                            {section.quizzes.map((quiz, qIdx) => (
+                              <Card key={qIdx} className="border">
+                                <CardContent className="pt-4 space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium">Quiz {qIdx + 1}</div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeQuiz(sIdx, qIdx)}
+                                      className="text-red-600"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                      placeholder="Quiz title"
+                                      value={quiz.title}
+                                      onChange={(e) => updateQuizField(sIdx, qIdx, "title", e.target.value)}
+                                      required
+                                    />
+                                    <Input
+                                      type="number"
+                                      placeholder="Time limit (seconds)"
+                                      value={quiz.timeLimit}
+                                      onChange={(e) => updateQuizField(sIdx, qIdx, "timeLimit", parseInt(e.target.value || "0"))}
+                                      min={0}
+                                    />
+                                    <Input
+                                      type="number"
+                                      placeholder="Pass score"
+                                      value={quiz.passScore}
+                                      onChange={(e) => updateQuizField(sIdx, qIdx, "passScore", parseInt(e.target.value || "0"))}
+                                      min={0}
+                                    />
+                                    <div className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`quiz-free-${sIdx}-${qIdx}`}
+                                        checked={!!quiz.isFree}
+                                        onCheckedChange={(checked) => updateQuizField(sIdx, qIdx, "isFree", checked)}
+                                      />
+                                      <Label htmlFor={`quiz-free-${sIdx}-${qIdx}`}>Free Preview</Label>
+                                    </div>
+                                  </div>
+                                  <Textarea
+                                    placeholder="Quiz description"
+                                    value={quiz.description || ""}
+                                    onChange={(e) => updateQuizField(sIdx, qIdx, "description", e.target.value)}
+                                  />
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <div className="font-medium text-sm">Questions</div>
+                                      <Button type="button" size="sm" variant="outline" onClick={() => addQuestion(sIdx, qIdx)}>
+                                        <Plus className="h-4 w-4 mr-2" /> Add Question
+                                      </Button>
+                                    </div>
+                                    {quiz.questions.map((ques, qqIdx) => (
+                                      <div key={qqIdx} className="border rounded-md p-3 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                          <div className="text-sm">Q{qqIdx + 1}</div>
+                                          <Button type="button" variant="ghost" size="sm" onClick={() => removeQuestion(sIdx, qIdx, qqIdx)} className="text-red-600" disabled={quiz.questions.length === 1}>
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                        <Input
+                                          placeholder="Question text"
+                                          value={ques.question}
+                                          onChange={(e) => updateQuestionField(sIdx, qIdx, qqIdx, "question", e.target.value)}
+                                          required
+                                        />
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <div className="text-sm">Options</div>
+                                            <Button type="button" size="sm" variant="outline" onClick={() => addOption(sIdx, qIdx, qqIdx)} disabled={ques.options.length >= 10}>
+                                              <Plus className="h-4 w-4 mr-2" /> Add Option
+                                            </Button>
+                                          </div>
+                                          {ques.options.map((opt, ooIdx) => (
+                                            <div key={ooIdx} className="flex items-center gap-2">
+                                              <input type="radio" name={`correct-${sIdx}-${qIdx}-${qqIdx}`} checked={ques.correctOptionIndex === ooIdx} onChange={() => setCorrectOption(sIdx, qIdx, qqIdx, ooIdx)} />
+                                              <Input value={opt} onChange={(e) => updateOption(sIdx, qIdx, qqIdx, ooIdx, e.target.value)} placeholder={`Option ${ooIdx + 1}`} />
+                                              <Button type="button" size="sm" variant="ghost" onClick={() => removeOption(sIdx, qIdx, qqIdx, ooIdx)} disabled={ques.options.length === 2} className="text-red-600">
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                          <Input type="number" min={0} value={ques.points ?? 1} onChange={(e) => updateQuestionField(sIdx, qIdx, qqIdx, "points", parseInt(e.target.value || "0"))} placeholder="Points" />
+                                          <Input value={ques.explanation || ""} onChange={(e) => updateQuestionField(sIdx, qIdx, qqIdx, "explanation", e.target.value)} placeholder="Explanation (optional)" />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}

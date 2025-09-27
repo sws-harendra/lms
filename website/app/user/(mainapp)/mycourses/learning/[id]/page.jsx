@@ -58,6 +58,13 @@ const LearningPage = () => {
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState("");
 
+  // Quiz states
+  // activeQuiz: { scope: 'section' | 'summary', sectionIndex?, quizIndex?, quiz }
+  const [activeQuiz, setActiveQuiz] = useState(null);
+  const [quizResponses, setQuizResponses] = useState([]); // selected option index per question
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizResult, setQuizResult] = useState(null); // { score, total, passed }
+
   // Sync form with myReview from store
   useEffect(() => {
     if (myReview) {
@@ -216,6 +223,84 @@ const LearningPage = () => {
     } catch (e) {}
   };
 
+  const hasAccess = courseAccess?.hasAccess;
+  const certificateEnabled = currentCourse?.certificateEnabled;
+  const totalLessons = currentCourse?.sections?.reduce(
+    (total, section) => total + (section.lessons?.length || 0),
+    0
+  ) || 0;
+  const progressPercentage =
+    totalLessons > 0 ? (completedLessons.size / totalLessons) * 100 : 0;
+
+  // Lesson select clears quiz mode
+  const handleLessonSelect = (section, lesson) => {
+    setActiveLesson({
+      ...lesson,
+      sectionId: section._id,
+    });
+    setActiveQuiz(null);
+    setQuizResponses([]);
+    setQuizSubmitted(false);
+    setQuizResult(null);
+  };
+
+  // Quiz helpers
+  const startSectionQuiz = (sectionIndex, quizIndex) => {
+    if (!hasAccess) return;
+    const quiz = currentCourse.sections?.[sectionIndex]?.quizzes?.[quizIndex];
+    if (!quiz) return;
+    setActiveQuiz({ scope: "section", sectionIndex, quizIndex, quiz });
+    setQuizResponses(Array(quiz.questions.length).fill(null));
+    setQuizSubmitted(false);
+    setQuizResult(null);
+  };
+
+  const startSummaryQuiz = () => {
+    if (!hasAccess) return;
+    const quiz = currentCourse.summaryQuiz;
+    if (!quiz) return;
+    setActiveQuiz({ scope: "summary", quiz });
+    setQuizResponses(Array(quiz.questions.length).fill(null));
+    setQuizSubmitted(false);
+    setQuizResult(null);
+  };
+
+  const selectOption = (qIndex, optIndex) => {
+    if (quizSubmitted) return;
+    setQuizResponses((prev) => {
+      const next = [...prev];
+      next[qIndex] = optIndex;
+      return next;
+    });
+  };
+
+  const submitQuiz = () => {
+    if (!activeQuiz) return;
+    const qs = activeQuiz.quiz.questions || [];
+    let score = 0;
+    qs.forEach((q, i) => {
+      if (quizResponses[i] === q.correctOptionIndex) score += q.points || 1;
+    });
+    const total = qs.reduce((sum, q) => sum + (q.points || 1), 0);
+    const passed = (activeQuiz.quiz.passScore || 0) <= score;
+    setQuizSubmitted(true);
+    setQuizResult({ score, total, passed });
+  };
+
+  const isLessonCompleted = (lessonId) => completedLessons.has(lessonId);
+
+  const averageRating =
+    reviews?.length > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) /
+        reviews.length
+      : 0;
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: BookOpen },
+    { id: "learning", label: "What You'll Learn", icon: TrendingUp },
+    { id: "reviews", label: "Reviews", icon: MessageSquare },
+  ];
+
   if (status === "loading")
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -243,35 +328,6 @@ const LearningPage = () => {
         </div>
       </div>
     );
-
-  const hasAccess = courseAccess?.hasAccess;
-  const certificateEnabled = currentCourse.certificateEnabled;
-  const totalLessons = currentCourse.sections.reduce(
-    (total, section) => total + (section.lessons?.length || 0),
-    0
-  );
-  const progressPercentage = (completedLessons.size / totalLessons) * 100;
-
-  const handleLessonSelect = (section, lesson) => {
-    setActiveLesson({
-      ...lesson,
-      sectionId: section._id,
-    });
-  };
-
-  const isLessonCompleted = (lessonId) => completedLessons.has(lessonId);
-
-  const averageRating =
-    reviews?.length > 0
-      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) /
-        reviews.length
-      : 0;
-
-  const tabs = [
-    { id: "overview", label: "Overview", icon: BookOpen },
-    { id: "learning", label: "What You'll Learn", icon: TrendingUp },
-    { id: "reviews", label: "Reviews", icon: MessageSquare },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -359,9 +415,104 @@ const LearningPage = () => {
             </div>
           </div>
 
-          {/* Video Section */}
+          {/* Video / Quiz Section */}
           <div className="flex-1 p-8">
-            {activeLesson ? (
+            {activeQuiz ? (
+              <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {activeQuiz.quiz.title}
+                    </h3>
+                    {activeQuiz.quiz.description && (
+                      <p className="text-gray-600 mt-1">
+                        {activeQuiz.quiz.description}
+                      </p>
+                    )}
+                    {activeQuiz.quiz.timeLimit > 0 && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Time limit: {activeQuiz.quiz.timeLimit} seconds
+                      </p>
+                    )}
+                  </div>
+                  {quizSubmitted && quizResult && (
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        quizResult.passed
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {quizResult.passed ? "Passed" : "Not Passed"}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {activeQuiz.quiz.questions.map((q, qIndex) => (
+                    <div key={qIndex} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900">
+                          Q{qIndex + 1}. {q.question}
+                        </h4>
+                        <span className="text-xs text-gray-500">
+                          Points: {q.points || 1}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {q.options.map((opt, oIndex) => (
+                          <label key={oIndex} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`q-${qIndex}`}
+                              checked={quizResponses[qIndex] === oIndex}
+                              onChange={() => selectOption(qIndex, oIndex)}
+                              disabled={quizSubmitted}
+                            />
+                            <span className="text-gray-800">{opt}</span>
+                            {quizSubmitted &&
+                              q.correctOptionIndex === oIndex && (
+                                <span className="text-xs text-green-600 ml-2">
+                                  Correct
+                                </span>
+                              )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {!quizSubmitted ? (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={submitQuiz}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Submit Quiz
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      Score: <strong>{quizResult.score}</strong> /{" "}
+                      {quizResult.total}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setActiveQuiz(null);
+                        setQuizResponses([]);
+                        setQuizSubmitted(false);
+                        setQuizResult(null);
+                      }}
+                    >
+                      Back to Lesson
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : activeLesson ? (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                   {hasAccess ? (
@@ -394,9 +545,7 @@ const LearningPage = () => {
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         Lesson Description
                       </h3>
-                      <p className="text-gray-600">
-                        {activeLesson.description}
-                      </p>
+                      <p className="text-gray-600">{activeLesson.description}</p>
                     </div>
                     {hasAccess && !isLessonCompleted(activeLesson._id) && (
                       <Button
@@ -495,8 +644,7 @@ const LearningPage = () => {
                               </span>
                             </div>
                             <p className="text-purple-700">
-                              {currentCourse.enrolledUsers?.length || 0}{" "}
-                              enrolled
+                              {currentCourse.enrolledUsers?.length || 0} enrolled
                             </p>
                           </div>
                         </div>
@@ -706,7 +854,6 @@ const LearningPage = () => {
         </div>
 
         {/* Sidebar */}
-        {/* Sidebar */}
         <div className="w-96 bg-white border-l shadow-lg overflow-y-auto">
           <div className="sticky top-0 bg-white border-b px-6 py-4">
             <h3 className="text-lg font-bold text-gray-900">Course Content</h3>
@@ -715,7 +862,23 @@ const LearningPage = () => {
             </p>
           </div>
 
-          <div className="p-4">
+          <div className="p-4 space-y-4">
+            {currentCourse.summaryQuiz && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="text-sm font-medium text-purple-900">
+                  Summary Quiz
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={!hasAccess}
+                  onClick={startSummaryQuiz}
+                >
+                  Start
+                </Button>
+              </div>
+            )}
+
             {currentCourse.sections.map((section, sIndex) => (
               <div key={section._id} className="mb-6">
                 {/* Section Header */}
@@ -807,6 +970,33 @@ const LearningPage = () => {
                           {res.title || `Resource ${rIndex + 1}`}
                         </span>
                       </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Quizzes */}
+                {(section.quizzes?.length || 0) > 0 && (
+                  <div className="ml-8 mt-3 space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">
+                      Quizzes
+                    </p>
+                    {section.quizzes.map((q, qIndex) => (
+                      <div
+                        key={q._id || qIndex}
+                        className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg"
+                      >
+                        <span className="text-sm text-gray-800 truncate mr-2">
+                          {q.title || `Quiz ${qIndex + 1}`}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!hasAccess}
+                          onClick={() => startSectionQuiz(sIndex, qIndex)}
+                        >
+                          Start
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}
