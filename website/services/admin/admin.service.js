@@ -21,4 +21,8 @@ export const adminServices = {
     const response = await axiosInstance.get(`/admin/users/${id}`);
     return response.data;
   },
+  createUser: async (data) => {
+    const response = await axiosInstance.post(`/admin/users`, data);
+    return response.data;
+  },
 };

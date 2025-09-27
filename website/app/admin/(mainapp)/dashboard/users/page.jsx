@@ -83,7 +83,7 @@ const AllUsers = () => {
           <Button type="submit">Search</Button>
         </form>
         <Button asChild>
-          <Link href="#">Add User</Link>
+          <Link href="/admin/(mainapp)/dashboard/users/add-user">Add User</Link>
         </Button>
       </div>
 

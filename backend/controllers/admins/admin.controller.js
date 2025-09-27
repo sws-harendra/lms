@@ -2,6 +2,7 @@ const Course = require("../../models/course.model");
 const Enrollment = require("../../models/enrollment.model");
 const User = require("../../models/user.model");
 const Role = require("../../models/role.model");
+const bcrypt = require("bcrypt");
 
 const getInstructorProfile = async (req, res) => {
   try {
@@ -57,6 +58,54 @@ const getInstructorProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching instructor profile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Create a new user (student/instructor/admin) by admin
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, phone, roleName } = req.body;
+
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Name, email and password are required" });
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing)
+      return res.status(400).json({ message: "Email already in use" });
+
+    // Resolve role by name; default handled by User pre-save if none provided
+    let roleId = null;
+    if (roleName) {
+      const role = await Role.findOne({ name: roleName });
+      if (!role) return res.status(400).json({ message: "Invalid role name" });
+      roleId = role._id;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      phone: phone || undefined,
+      role: roleId || undefined,
+      isVerified: true,
+      maxDevices: 5,
+    });
+
+    const created = await User.findById(newUser._id)
+      .select("name email phone profileImage role isVerified")
+      .populate("role", "name");
+
+    res
+      .status(201)
+      .json({ message: "User created successfully", user: created });
+  } catch (error) {
+    console.error("Error creating user:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -487,4 +536,5 @@ module.exports = {
   getAdminDashboardData,
   getAllUsersWithRole,
   getUserByIdWithDetail,
+  createUser,
 };
