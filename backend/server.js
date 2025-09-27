@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 
 const routes = require("./routes/route");
+const seedSettings = require("./config/seedSettings");
 
 const express = require("express");
 const cors = require("cors");
@@ -26,6 +27,7 @@ mongoose
   .then(() => {
     // seedRoles();
     seedCourseCategory();
+    seedSettings();
 
     console.log("✅ MongoDB connected to local instance.");
   })
