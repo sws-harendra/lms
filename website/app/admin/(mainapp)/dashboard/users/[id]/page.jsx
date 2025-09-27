@@ -1,18 +1,20 @@
 "use client";
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchUserById } from "@/lib/store/features/adminSlice";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getMediaUrl } from "@/app/utils/getAssetsUrl";
+import { adminServices } from "@/services/admin/admin.service";
 
 const UserDetailPage = () => {
   const params = useParams();
   const id = params?.id;
   const dispatch = useDispatch();
+  const router = useRouter();
   const { userDetail, userDetailStatus, userDetailError } = useSelector(
     (s) => s.admin
   );
@@ -20,6 +22,18 @@ const UserDetailPage = () => {
   useEffect(() => {
     if (id) dispatch(fetchUserById(id));
   }, [dispatch, id]);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    const ok = window.confirm("Delete this user? This action cannot be undone.");
+    if (!ok) return;
+    try {
+      await adminServices.deleteUser(id);
+      router.push("/admin/(mainapp)/dashboard/users");
+    } catch (e) {
+      alert(e?.response?.data?.message || "Failed to delete user");
+    }
+  };
 
   if (userDetailStatus === "loading")
     return <div className="p-4">Loading user...</div>;
@@ -64,8 +78,10 @@ const UserDetailPage = () => {
           <Button asChild variant="outline">
             <Link href="/admin/(mainapp)/dashboard/users">Back</Link>
           </Button>
-          <Button variant="secondary">Edit</Button>
-          <Button variant="destructive">Delete</Button>
+          <Button asChild variant="secondary">
+            <Link href={`/admin/(mainapp)/dashboard/users/${id}/edit`}>Edit</Link>
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>Delete</Button>
         </div>
       </div>
 

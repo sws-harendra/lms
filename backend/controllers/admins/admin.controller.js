@@ -530,6 +530,62 @@ const getUserByIdWithDetail = async (req, res) => {
   }
 };
 
+// Update a user by admin
+const updateUserByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, roleName, isVerified, password } = req.body;
+
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email;
+    if (phone !== undefined) updates.phone = phone;
+    if (typeof isVerified === "boolean" || isVerified === true || isVerified === false) updates.isVerified = isVerified;
+
+    // If roleName is provided, resolve to Role _id
+    if (roleName) {
+      const role = await Role.findOne({ name: roleName });
+      if (!role) return res.status(400).json({ message: "Invalid role name" });
+      updates.role = role._id;
+    }
+
+    // If email is changing, ensure uniqueness
+    if (updates.email) {
+      const existing = await User.findOne({ email: updates.email, _id: { $ne: id } });
+      if (existing) return res.status(400).json({ message: "Email already in use" });
+    }
+
+    // Optionally update password if provided
+    if (password) {
+      updates.password = await bcrypt.hash(password, 10);
+    }
+
+    const updated = await User.findByIdAndUpdate(id, updates, { new: true })
+      .select("name email phone profileImage role isVerified")
+      .populate("role", "name");
+
+    if (!updated) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({ message: "User updated successfully", user: updated });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Delete a user by admin
+const deleteUserByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await User.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getInstructorProfile,
   getDashboardData,
@@ -537,4 +593,6 @@ module.exports = {
   getAllUsersWithRole,
   getUserByIdWithDetail,
   createUser,
+  updateUserByAdmin,
+  deleteUserByAdmin,
 };

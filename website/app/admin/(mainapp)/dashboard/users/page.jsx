@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAllUsers,
@@ -23,9 +24,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getMediaUrl } from "@/app/utils/getAssetsUrl";
+import { adminServices } from "@/services/admin/admin.service";
 
 const AllUsers = () => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const { users, usersStatus, usersError, pagination, summary, filters } = useSelector((s) => s.admin);
 
   const [localSearch, setLocalSearch] = useState(filters.search || "");
@@ -58,6 +61,25 @@ const AllUsers = () => {
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
     dispatch(setUserPagination({ page }));
+  };
+
+  const handleDelete = async (id) => {
+    const ok = window.confirm("Delete this user? This action cannot be undone.");
+    if (!ok) return;
+    try {
+      await adminServices.deleteUser(id);
+      // refetch same page with current filters
+      dispatch(
+        fetchAllUsers({
+          page: pagination.page,
+          limit: pagination.limit,
+          search: filters.search,
+          role: filters.role,
+        })
+      );
+    } catch (e) {
+      alert(e?.response?.data?.message || "Failed to delete user");
+    }
   };
 
   return (
@@ -172,10 +194,12 @@ const AllUsers = () => {
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button variant="outline" asChild>
-                    <Link href={`/admin/dashboard/users/${u._id}`}>View</Link>
+                    <Link href={`/admin/(mainapp)/dashboard/users/${u._id}`}>View</Link>
                   </Button>
-                  <Button variant="secondary">Edit</Button>
-                  <Button variant="destructive">Delete</Button>
+                  <Button variant="secondary" asChild>
+                    <Link href={`/admin/(mainapp)/dashboard/users/${u._id}/edit`}>Edit</Link>
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleDelete(u._id)}>Delete</Button>
                 </TableCell>
               </TableRow>
             ))}

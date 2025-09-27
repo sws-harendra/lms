@@ -22,6 +22,7 @@ import {
   Coins,
   PersonStanding,
   User,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,17 +34,17 @@ import { logout } from "@/lib/store/features/authSlice";
 // menuItems can contain children for collapsible menus
 const menuItems = [
   { name: "Dashboard", icon: Home, href: "/admin/dashboard" },
-  {
-    name: "Courses",
-    icon: Package,
-    children: [
-      { name: "My Courses", href: "/admin/dashboard/courses/my-courses" },
-      {
-        name: "Create Course",
-        href: "/admin/dashboard/courses/add-course",
-      },
-    ],
-  },
+  // {
+  //   name: "Courses",
+  //   icon: Package,
+  //   children: [
+  //     { name: "My Courses", href: "/admin/dashboard/courses/my-courses" },
+  //     {
+  //       name: "Create Course",
+  //       href: "/admin/dashboard/courses/add-course",
+  //     },
+  //   ],
+  // },
   { name: "Total Sales", icon: Coins, href: "/admin/dashboard/earning" },
   {
     name: "Users",
@@ -56,6 +57,8 @@ const menuItems = [
       },
     ],
   },
+  { name: "Categories", icon: Coins, href: "/admin/dashboard/categories" },
+  { name: "Settings", icon: Settings, href: "/admin/dashboard/settings" },
 
   // {
   //   name: "Orders",
@@ -65,7 +68,7 @@ const menuItems = [
   //     { name: "Refunds", href: "/admin/orders/refunds" },
   //   ],
   // },
-  { name: "Users", icon: Users, href: "/admin/users" },
+  // { name: "Users", icon: Users, href: "/admin/users" },
   {
     name: "Logout",
     icon: LogOut,
@@ -120,13 +123,13 @@ export default function AdminSidebar() {
         </h1>
 
         {/* Menu Items */}
-        <ul className="space-y-2">
+        <ul className="space-y-2 text-xl">
           {menuItems.map((item, idx) => (
             <li key={idx}>
               {item.isLogout ? (
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-3 p-2 rounded-md hover:bg-gray-800 transition text-left"
+                  className="flex w-full items-center gap-3 p-4 rounded-md hover:bg-gray-800 transition text-left"
                 >
                   <item.icon size={20} />
                   <span
@@ -139,7 +142,7 @@ export default function AdminSidebar() {
                 <div>
                   <button
                     onClick={() => toggleMenu(item.name)}
-                    className="flex w-full items-center justify-between p-2 rounded-md hover:bg-gray-800 transition"
+                    className="flex w-full  items-center justify-between p-4 rounded-md hover:bg-gray-800 transition"
                   >
                     <div className="flex items-center gap-3">
                       <item.icon size={20} />
@@ -161,12 +164,12 @@ export default function AdminSidebar() {
                     )}
                   </button>
                   {openMenus.includes(item.name) && open && (
-                    <ul className="ml-8 mt-1 space-y-1">
+                    <ul className="ml-8 mt-1  space-y-1">
                       {item.children.map((sub, subIdx) => (
                         <li key={subIdx}>
                           <Link
                             href={sub.href}
-                            className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-800 transition text-sm"
+                            className="flex items-center  gap-2 p-4 rounded-md hover:bg-gray-800 transition text-base"
                           >
                             <span>{sub.name}</span>
                           </Link>
@@ -178,7 +181,7 @@ export default function AdminSidebar() {
               ) : (
                 <Link
                   href={item.href}
-                  className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-800 transition"
+                  className="flex items-center gap-3 p-4 rounded-md hover:bg-gray-800 transition"
                 >
                   <item.icon size={20} />
                   <span
