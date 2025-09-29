@@ -387,6 +387,65 @@ const getEnrollmentandEarning = async (req, res) => {
   }
 };
 
+// Submit a quiz attempt and store in enrollment progress
+const submitQuizAttempt = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const userId = req.user.id;
+    const {
+      scope, // 'section' | 'summary'
+      sectionId, // optional for 'summary'
+      quizTitle,
+      score,
+      total,
+      passed,
+      responses, // array of selected option indexes
+    } = req.body;
+
+    if (!scope || typeof score !== "number" || typeof total !== "number") {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
+
+    const enrollment = await Enrollment.findOne({
+      _id: enrollmentId,
+      user: userId,
+    });
+    if (!enrollment) {
+      return res.status(404).json({ message: "Enrollment not found" });
+    }
+
+    const attempt = {
+      scope,
+      sectionId: sectionId || undefined,
+      quizTitle: quizTitle || "",
+      score,
+      total,
+      passed: !!passed,
+      responses: Array.isArray(responses) ? responses : [],
+      submittedAt: new Date(),
+    };
+
+    if (!Array.isArray(enrollment.progress.quizAttempts)) {
+      enrollment.progress.quizAttempts = [];
+    }
+    enrollment.progress.quizAttempts.push(attempt);
+    enrollment.progress.lastAccessedAt = new Date();
+
+    await enrollment.save();
+
+    return res.status(201).json({
+      message: "Quiz attempt stored",
+      attempt,
+      progress: enrollment.progress,
+    });
+  } catch (error) {
+    console.error("Submit quiz attempt error:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   enrollInCourse,
   // completeEnrollment,
@@ -395,4 +454,5 @@ module.exports = {
   markLessonCompleted,
   checkCourseAccess,
   getEnrollmentandEarning,
+  submitQuizAttempt,
 };

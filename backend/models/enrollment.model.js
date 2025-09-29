@@ -32,14 +32,32 @@ const enrollmentSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             required: true,
           },
-          completedAt: {
-            type: Date,
-            default: Date.now,
-          },
           watchTime: {
             type: Number, // in seconds
             default: 0,
           },
+          completedAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      quizAttempts: [
+        {
+          scope: {
+            type: String,
+            enum: ["section", "summary"],
+            required: true,
+          },
+          sectionId: {
+            type: mongoose.Schema.Types.ObjectId,
+          },
+          quizTitle: String,
+          score: { type: Number, required: true },
+          total: { type: Number, required: true },
+          passed: { type: Boolean, default: false },
+          responses: [Number], // selected option indexes
+          submittedAt: { type: Date, default: Date.now },
         },
       ],
       completionPercentage: {

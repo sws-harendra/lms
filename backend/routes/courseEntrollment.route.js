@@ -8,6 +8,7 @@ const {
   markLessonCompleted,
   checkCourseAccess,
   getEnrollmentandEarning,
+  submitQuizAttempt,
 } = require("../controllers/courseEnrollment.controller");
 const { authenticateToken } = require("../middlewares/user.auth");
 router.get("/myearning", authenticateToken, getEnrollmentandEarning);
@@ -21,6 +22,11 @@ router.post(
   "/:enrollmentId/complete-lesson",
   authenticateToken,
   markLessonCompleted
+);
+router.post(
+  "/:enrollmentId/submit-quiz",
+  authenticateToken,
+  submitQuizAttempt
 );
 router.get("/access/:courseId", authenticateToken, checkCourseAccess);
 

@@ -18,7 +18,19 @@ export const enrollInCourse = createAsyncThunk(
     }
   }
 );
-
+export const submitQuizAttempt = createAsyncThunk(
+  "enrollment/submitQuizAttempt",
+  async ({ enrollmentId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await enrollmentService.submitQuizAttempt(enrollmentId, payload);
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit quiz attempt"
+      );
+    }
+  }
+);
 export const completeEnrollment = createAsyncThunk(
   "enrollment/completeEnrollment",
   async (enrollmentData, { rejectWithValue }) => {
@@ -274,6 +286,22 @@ const enrollmentSlice = createSlice({
       })
       .addCase(getAllEnrollmentsForPublisher.rejected, (state, action) => {
         state.status = "failed";
+        state.error = action.payload;
+      })
+      .addCase(submitQuizAttempt.pending, (state) => {
+        state.lessonStatus = "loading"; // reuse
+        state.error = null;
+      })
+      .addCase(submitQuizAttempt.fulfilled, (state, action) => {
+        state.lessonStatus = "succeeded";
+        if (state.currentEnrollment) {
+          // Update progress to include the new attempt history
+          state.currentEnrollment.progress = action.payload.progress;
+        }
+        state.error = null;
+      })
+      .addCase(submitQuizAttempt.rejected, (state, action) => {
+        state.lessonStatus = "failed";
         state.error = action.payload;
       });
   },

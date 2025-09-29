@@ -13,7 +13,7 @@ import {
 import {
   checkCourseAccess,
   getEnrollmentDetails,
-  markLessonCompleted,
+  markLessonCompleted,submitQuizAttempt
 } from "@/lib/store/features/enrollmentSlice";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/videoPlayer";
@@ -81,7 +81,12 @@ const LearningPage = () => {
       dispatch(getMyReviewForCourse(id));
     }
   }, [id, dispatch]);
-
+  const getActiveEnrollmentId = () => {
+    if (courseAccess?.enrollment?._id) return courseAccess.enrollment._id;
+    if (currentEnrollment?._id) return currentEnrollment._id;
+    if (currentEnrollment?.enrollment?._id) return currentEnrollment.enrollment._id;
+    return null;
+  };
   useEffect(() => {
     if (courseAccess?.enrollment?._id) {
       dispatch(getEnrollmentDetails(courseAccess.enrollment._id));
@@ -274,7 +279,7 @@ const LearningPage = () => {
     });
   };
 
-  const submitQuiz = () => {
+  const submitQuiz = async () => {
     if (!activeQuiz) return;
     const qs = activeQuiz.quiz.questions || [];
     let score = 0;
@@ -283,8 +288,37 @@ const LearningPage = () => {
     });
     const total = qs.reduce((sum, q) => sum + (q.points || 1), 0);
     const passed = (activeQuiz.quiz.passScore || 0) <= score;
+  
     setQuizSubmitted(true);
     setQuizResult({ score, total, passed });
+  
+    // Persist attempt
+    const enrollmentId = getActiveEnrollmentId();
+    if (enrollmentId) {
+      // Prefer sectionId from sectionIndex to avoid mismatch with activeLesson
+      const sectionId =
+        activeQuiz.scope === "section"
+          ? currentCourse?.sections?.[activeQuiz.sectionIndex]?._id
+          : undefined;
+  
+      const payload = {
+        scope: activeQuiz.scope,          // 'section' | 'summary'
+        sectionId,                        // only for section quiz
+        quizTitle: activeQuiz.quiz.title || "",
+        score,
+        total,
+        passed,
+        responses: quizResponses,
+      };
+  
+      try {
+        await dispatch(submitQuizAttempt({ enrollmentId, payload })).unwrap();
+        // Optionally refresh enrollment details if you want the latest progress everywhere:
+        // await dispatch(getEnrollmentDetails(enrollmentId));
+      } catch (e) {
+        console.error("Failed to store quiz attempt", e);
+      }
+    }
   };
 
   const isLessonCompleted = (lessonId) => completedLessons.has(lessonId);
@@ -419,7 +453,25 @@ const LearningPage = () => {
           <div className="flex-1 p-8">
             {activeQuiz ? (
               <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
-                <div className="flex items-center justify-between">
+              {currentEnrollment?.progress?.quizAttempts?.length > 0 && (
+  <div className="bg-white rounded-xl shadow-sm p-4 mt-6">
+    <h4 className="font-semibold text-gray-900 mb-2">Quiz History</h4>
+    <div className="space-y-2">
+      {currentEnrollment.progress.quizAttempts.slice().reverse().map((a, i) => (
+        <div key={i} className="text-sm text-gray-700 flex justify-between">
+          <div>
+            <span className="font-medium">{a.quizTitle || "Quiz"}</span>{" "}
+            <span className="text-gray-500">({a.scope})</span>
+          </div>
+          <div>
+            {a.score}/{a.total} • {a.passed ? "Passed" : "Not Passed"} •{" "}
+            {new Date(a.submittedAt).toLocaleString()}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}  <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">
                       {activeQuiz.quiz.title}
