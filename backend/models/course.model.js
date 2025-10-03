@@ -150,6 +150,7 @@ const meetingSchema = new mongoose.Schema({
   url: { type: String, required: true, trim: true },
   description: { type: String },
   scheduledAt: { type: Date, required: true },
+  recordingUrl: { type: String },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },
 });

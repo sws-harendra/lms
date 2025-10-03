@@ -838,6 +838,41 @@ const addCourseMeeting = async (req, res) => {
   }
 };
 
+
+const uploadMeetingRecording = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const recordingFile = req.file;
+
+    if (!recordingFile) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Update the meeting with the recording URL
+    const course = await Course.findOneAndUpdate(
+      { 'meetings._id': meetingId },
+      { 
+        $set: { 
+          'meetings.$.recordingUrl': `/uploads/${recordingFile.filename}` 
+        } 
+      },
+      { new: true }
+    );
+
+    if (!course) {
+      return res.status(404).json({ message: 'Meeting not found' });
+    }
+
+    res.status(200).json({ 
+      message: 'Recording uploaded successfully',
+      recordingUrl: `/uploads/${recordingFile.filename}`
+    });
+  } catch (error) {
+    console.error('Error uploading recording:', error);
+    res.status(500).json({ message: 'Server error while uploading recording' });
+  }
+};
+
 module.exports = {
   getAllCourses,
   createCourse,
@@ -854,5 +889,5 @@ module.exports = {
   addNewCategory,
   updateCategory,
   deleteCategory,
-  addCourseMeeting,
+  addCourseMeeting,uploadMeetingRecording
 };

@@ -54,6 +54,14 @@ router.post(
   authorizePermission("create_course"),
   courseController.createCourse
 );
+
+router.post(
+  '/meetings/:meetingId/recording',
+  authenticateToken,
+  upload.single('recording'),  // Make sure you have multer configured
+  courseController.uploadMeetingRecording
+);
+
 // router.post(
 //   "/add-course",
 //   authenticateToken,

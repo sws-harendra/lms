@@ -162,6 +162,12 @@ export default function PublishedCourse() {
                   </Button>
                 </Link>
 
+                <Link href={`/instructor/dashboard/courses/meetings/${course._id}`}>
+                  <Button variant="default" size="sm">
+                    View Meetings
+                  </Button>
+                </Link>
+
                 {/* Add Meeting */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

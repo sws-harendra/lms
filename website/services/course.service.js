@@ -154,4 +154,20 @@ export const courseService = {
     });
     return response.data;
   },
+
+
+  uploadMeetingRecording: async (meetingId, formData) => {
+    const response = await axiosInstance.post(
+      `/course/meetings/${meetingId}/recording`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+  
+  
 };
