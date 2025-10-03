@@ -144,6 +144,16 @@ const sectionSchema = new mongoose.Schema({
   },
 });
 
+// Meeting schema
+const meetingSchema = new mongoose.Schema({
+  title: { type: String, required: true, trim: true },
+  url: { type: String, required: true, trim: true },
+  description: { type: String },
+  scheduledAt: { type: Date, required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  createdAt: { type: Date, default: Date.now },
+});
+
 const courseSchema = new mongoose.Schema(
   {
     title: {
@@ -242,6 +252,8 @@ const courseSchema = new mongoose.Schema(
 
     requirements: [String], // Prerequisites
     whatYouWillLearn: [String], // Learning outcomes
+    // Meetings (e.g., Google Meet or any URL) associated with the course
+    meetings: [meetingSchema],
   },
   {
     timestamps: true,

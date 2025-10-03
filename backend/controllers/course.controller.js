@@ -807,6 +807,37 @@ const getallcoursesforpublisher = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+const addCourseMeeting = async (req, res) => {
+  try {
+    const { id } = req.params; // course id from route
+    const { title, url, description, scheduledAt } = req.body;
+
+    if (!title || !url || !scheduledAt) {
+      return res.status(400).json({ message: "title, url and scheduledAt are required" });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    const meeting = {
+      title,
+      url,
+      description: description || "",
+      scheduledAt: new Date(scheduledAt),
+      createdBy: req.user?.id || null,
+    };
+
+    course.meetings.push(meeting);
+    await course.save();
+
+    res.status(201).json({ message: "Meeting added", meeting });
+  } catch (error) {
+    console.error("Error adding course meeting:", error);
+    res.status(500).json({ message: "Server error while adding course meeting" });
+  }
+};
+
 module.exports = {
   getAllCourses,
   createCourse,
@@ -823,4 +854,5 @@ module.exports = {
   addNewCategory,
   updateCategory,
   deleteCategory,
+  addCourseMeeting,
 };

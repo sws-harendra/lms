@@ -144,4 +144,14 @@ export const courseService = {
     const response = await axiosInstance.delete(`/course/${courseId}/reviews`);
     return response.data;
   },
+  // Meetings
+  addCourseMeeting: async (courseId, { title, url, description, scheduledAt }) => {
+    const response = await axiosInstance.post(`/course/${courseId}/meetings`, {
+      title,
+      url,
+      description,
+      scheduledAt,
+    });
+    return response.data;
+  },
 };

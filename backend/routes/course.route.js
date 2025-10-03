@@ -4,12 +4,30 @@ const courseController = require("../controllers/course.controller");
 const authorizePermission = require("../middlewares/authorization");
 const { authenticateToken } = require("../middlewares/user.auth");
 const { upload } = require("../helpers/multer");
-const {
-  addOrUpdateReview,
-  deleteReview,
-  getCourseReviews,
-  getMyReviewForCourse,
+const {addOrUpdateReview,
+deleteReview,
+getCourseReviews,
+getMyReviewForCourse,
 } = require("../controllers/review.controller");
+
+const {
+  getAllCourses,
+  createCourse,
+  getCourseById,
+  getCourseBySlug,
+  updateCourse,
+  deleteCourse,
+  togglePublishCourse,
+  getPublishedCourses,
+  getCoursesByCategory,
+  getMyEnrolledCourses,
+  getAllCategories,
+  getallcoursesforpublisher,
+  addNewCategory,
+  updateCategory,
+  deleteCategory,
+  addCourseMeeting,
+} = require("../controllers/course.controller");
 
 // GET /api/courses?category=webdev&minRating=3.5&sortBy=rating&sortOrder=desc
 router.get("/", courseController.getAllCourses);
@@ -64,6 +82,13 @@ router.put(
 );
 router.delete("/:id", courseController.deleteCourse);
 router.patch("/toggle-publish/:id", courseController.togglePublishCourse);
+
+// Add a meeting to a course
+router.post(
+  "/:id/meetings",
+  authenticateToken,
+  addCourseMeeting
+);
 
 // Reviews
 // Public: list reviews for a course

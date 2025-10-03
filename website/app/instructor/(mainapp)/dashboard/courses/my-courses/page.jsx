@@ -8,6 +8,7 @@ import {
 } from "@/lib/store/features/courseSlice";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { courseService } from "@/services/course.service";
 
 export default function PublishedCourse() {
   const dispatch = useDispatch();
@@ -39,6 +41,38 @@ export default function PublishedCourse() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  // meeting state
+  const [activeCourseId, setActiveCourseId] = useState(null);
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [meetingDescription, setMeetingDescription] = useState("");
+  const [meetingDateTime, setMeetingDateTime] = useState("");
+  const resetMeetingForm = () => {
+    setMeetingTitle("");
+    setMeetingUrl("");
+    setMeetingDescription("");
+    setMeetingDateTime("");
+  };
+  const saveMeeting = async () => {
+    if (!activeCourseId) return;
+    if (!meetingTitle || !meetingUrl || !meetingDateTime) {
+      toast.error("Please fill title, URL and date/time");
+      return;
+    }
+    try {
+      await courseService.addCourseMeeting(activeCourseId, {
+        title: meetingTitle,
+        url: meetingUrl,
+        description: meetingDescription,
+        scheduledAt: meetingDateTime,
+      });
+      toast.success("Meeting added");
+      resetMeetingForm();
+      setActiveCourseId(null);
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.message || "Failed to add meeting");
+    }
+  };
 
   useEffect(() => {
     error && toast.error(error);
@@ -127,6 +161,61 @@ export default function PublishedCourse() {
                     Edit
                   </Button>
                 </Link>
+
+                {/* Add Meeting */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setActiveCourseId(course._id);
+                        resetMeetingForm();
+                      }}
+                    >
+                      Add Meeting
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Add Meeting</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Create a meeting for this course. Provide a title, URL (Google Meet or any), description, and schedule time.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-3">
+                      <Input
+                        placeholder="Meeting title"
+                        value={meetingTitle}
+                        onChange={(e) => setMeetingTitle(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Meeting URL (https://...)"
+                        value={meetingUrl}
+                        onChange={(e) => setMeetingUrl(e.target.value)}
+                      />
+                      <Textarea
+                        placeholder="Description (optional)"
+                        value={meetingDescription}
+                        onChange={(e) => setMeetingDescription(e.target.value)}
+                      />
+                      <div>
+                        <label className="text-sm mb-1 block">Schedule</label>
+                        <Input
+                          type="datetime-local"
+                          value={meetingDateTime}
+                          onChange={(e) => setMeetingDateTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setActiveCourseId(null)}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={saveMeeting}>Save</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 {/* Delete with confirm */}
                 <AlertDialog>
