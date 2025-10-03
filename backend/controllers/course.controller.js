@@ -226,10 +226,12 @@ const getCourseBySlug = async (req, res) => {
   }
 };
 
-// Update a course
+// Update a course (supports multipart for thumbnail, videos, documents)
 const updateCourse = async (req, res) => {
   try {
-    // If category is being updated, validate it exists
+    const courseId = req.params.id;
+
+    // Validate category if provided
     if (req.body.category) {
       const categoryExists = await CourseCategory.findById(req.body.category);
       if (!categoryExists) {
@@ -237,7 +239,140 @@ const updateCourse = async (req, res) => {
       }
     }
 
-    const course = await Course.findByIdAndUpdate(req.params.id, req.body, {
+    // Parse sections JSON if provided
+    let sectionsData = undefined;
+    if (typeof req.body.sections !== "undefined") {
+      try {
+        sectionsData =
+          typeof req.body.sections === "string"
+            ? JSON.parse(req.body.sections)
+            : req.body.sections;
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid sections JSON" });
+      }
+    }
+
+    // Parse optional summaryQuiz JSON if provided
+    let summaryQuiz = undefined;
+    if (typeof req.body.summaryQuiz !== "undefined") {
+      try {
+        if (typeof req.body.summaryQuiz === "string") {
+          summaryQuiz = JSON.parse(req.body.summaryQuiz);
+        } else if (req.body.summaryQuiz && typeof req.body.summaryQuiz === "object") {
+          summaryQuiz = req.body.summaryQuiz;
+        }
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid summaryQuiz JSON" });
+      }
+    }
+
+    // Handle thumbnail upload (optional)
+    let thumbnailUrl;
+    if (req.files?.thumbnail?.[0]) {
+      thumbnailUrl = `/uploads/${req.files.thumbnail[0].filename}`;
+    }
+
+    // Handle lesson video uploads (optional)
+    const uploadedVideos = req.files?.lessonVideos || [];
+    let videoIndex = 0;
+
+    // Handle document file uploads (optional)
+    const uploadedDocuments = req.files?.documentFiles || [];
+    let documentIndex = 0;
+
+    // If sections provided, stitch in uploaded files
+    let processedSections;
+    if (Array.isArray(sectionsData)) {
+      processedSections = sectionsData.map((section) => {
+        const lessons = (section.lessons || []).map((lesson) => {
+          // If no videoUrl provided, use next uploaded file
+          if (!lesson.videoUrl && uploadedVideos[videoIndex]) {
+            lesson.videoUrl = `/uploads/${uploadedVideos[videoIndex].filename}`;
+            videoIndex++;
+          }
+          // Normalize numbers/booleans
+          lesson.duration = lesson.duration ? parseInt(lesson.duration) : 0;
+          lesson.isFree = !!lesson.isFree;
+          return lesson;
+        });
+
+        const resources = (section.resources || []).map((resource) => {
+          if (resource.type === "document" && uploadedDocuments[documentIndex]) {
+            resource.fileUrl = `/uploads/${uploadedDocuments[documentIndex].filename}`;
+            documentIndex++;
+          }
+          resource.isFree = !!resource.isFree;
+          return resource;
+        });
+
+        // Cap quizzes to 3, and normalize
+        const quizzes = Array.isArray(section.quizzes)
+          ? section.quizzes.slice(0, 3).map((quiz, idx) => ({
+              title: quiz.title,
+              description: quiz.description || "",
+              timeLimit: quiz.timeLimit ? parseInt(quiz.timeLimit) : 0,
+              passScore: quiz.passScore ? parseInt(quiz.passScore) : 0,
+              isFree: !!quiz.isFree,
+              order: typeof quiz.order === "number" ? quiz.order : idx,
+              questions: (quiz.questions || []).map((q) => ({
+                question: q.question,
+                options: (q.options || []).slice(0, 10),
+                correctOptionIndex:
+                  typeof q.correctOptionIndex === "number" ? q.correctOptionIndex : 0,
+                points: q.points ? parseInt(q.points) : 1,
+                explanation: q.explanation || "",
+              })),
+            }))
+          : [];
+
+        return {
+          title: section.title,
+          description: section.description,
+          order: section.order,
+          lessons,
+          resources,
+          quizzes,
+        };
+      });
+    }
+
+    // Calculate total duration if sections provided
+    let totalDuration;
+    if (processedSections) {
+      totalDuration = 0;
+      processedSections.forEach((section) => {
+        (section.lessons || []).forEach((lesson) => {
+          if (lesson.duration) totalDuration += lesson.duration;
+        });
+      });
+    }
+
+    // Build update payload from allowed fields
+    const update = {};
+    const assignIfDefined = (key, val) => {
+      if (typeof val !== "undefined") update[key] = val;
+    };
+
+    assignIfDefined("title", req.body.title);
+    assignIfDefined("slug", req.body.slug);
+    assignIfDefined("description", req.body.description);
+    assignIfDefined("category", req.body.category);
+    assignIfDefined("tags", req.body.tags);
+    if (typeof req.body.price !== "undefined") update.price = Number(req.body.price);
+    if (typeof req.body.discountPrice !== "undefined") update.discountPrice = Number(req.body.discountPrice);
+    if (typeof req.body.isFree !== "undefined") update.isFree = req.body.isFree === true || req.body.isFree === "true";
+    if (typeof req.body.isPublished !== "undefined") update.isPublished = req.body.isPublished === true || req.body.isPublished === "true";
+    if (typeof req.body.certificateEnabled !== "undefined") update.certificateEnabled = req.body.certificateEnabled === true || req.body.certificateEnabled === "true";
+    assignIfDefined("level", req.body.level);
+    assignIfDefined("language", req.body.language);
+    if (thumbnailUrl) update.thumbnail = thumbnailUrl;
+    if (processedSections) update.sections = processedSections;
+    if (typeof summaryQuiz !== "undefined") update.summaryQuiz = summaryQuiz;
+    if (typeof req.body.requirements !== "undefined") update.requirements = req.body.requirements;
+    if (typeof req.body.whatYouWillLearn !== "undefined") update.whatYouWillLearn = req.body.whatYouWillLearn;
+    if (typeof totalDuration !== "undefined") update.totalDuration = totalDuration;
+
+    const course = await Course.findByIdAndUpdate(courseId, update, {
       new: true,
       runValidators: true,
     })
@@ -247,9 +382,7 @@ const updateCourse = async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json({ message: "Course updated", course });
   } catch (err) {
-    res
-      .status(400)
-      .json({ message: "Error updating course", error: err.message });
+    res.status(400).json({ message: "Error updating course", error: err.message });
   }
 };
 

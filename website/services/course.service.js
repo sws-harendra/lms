@@ -86,9 +86,20 @@ export const courseService = {
     return response.data;
   },
 
-  // Update course
+  // Update course (supports JSON or FormData)
   updateCourse: async (id, courseData) => {
-    const response = await axiosInstance.put(`/course/${id}`, courseData);
+    const isFormData = typeof FormData !== "undefined" && courseData instanceof FormData;
+    const response = await axiosInstance.put(
+      `/course/${id}`,
+      courseData,
+      isFormData
+        ? {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        : undefined
+    );
     return response.data;
   },
 

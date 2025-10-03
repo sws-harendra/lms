@@ -101,7 +101,7 @@ const UserNavbar = () => {
           <div className="flex items-center space-x-4">
             {/* Notifications */}
             <div className="relative">
-              <button
+              {/* <button
                 onClick={toggleNotifications}
                 className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
               >
@@ -109,7 +109,7 @@ const UserNavbar = () => {
                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-medium">3</span>
                 </span>
-              </button>
+              </button> */}
 
               {isNotificationsOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
@@ -176,7 +176,7 @@ const UserNavbar = () => {
                   <Link href={"/user/mycourses"}>
                     <ProfileMenuItem icon={Book} text="My Courses" />
                   </Link>
-                  <ProfileMenuItem icon={Settings} text="Settings" />
+                  {/* <ProfileMenuItem icon={Settings} text="Settings" /> */}
                   <ProfileMenuItem icon={Award} text="Certificates" />
                   <div className="border-t border-gray-100 mt-2 pt-2">
                     <ProfileMenuItem

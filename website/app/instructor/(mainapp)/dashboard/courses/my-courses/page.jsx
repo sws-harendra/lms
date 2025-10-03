@@ -52,7 +52,6 @@ export default function PublishedCourse() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // fetch data
   useEffect(() => {
     dispatch(getAllCoursesForPublisher({ page, search: debouncedSearch }));
   }, [dispatch, page, debouncedSearch]);
@@ -98,7 +97,6 @@ export default function PublishedCourse() {
             <TableHead>Category</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Enrollments</TableHead>
-
             <TableHead>Visibility</TableHead>
             <TableHead>Action</TableHead>
           </TableRow>
@@ -124,9 +122,11 @@ export default function PublishedCourse() {
               </TableCell>
               {/* Actions */}
               <TableCell className="flex gap-2">
-                <Button variant="default" size="sm">
-                  Edit
-                </Button>
+                <Link href={`/instructor/dashboard/courses/edit-course/${course._id}`}>
+                  <Button variant="default" size="sm">
+                    Edit
+                  </Button>
+                </Link>
 
                 {/* Delete with confirm */}
                 <AlertDialog>

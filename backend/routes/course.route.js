@@ -52,7 +52,16 @@ router.get(
 router.get("/published", courseController.getPublishedCourses);
 router.get("/slug/:slug", courseController.getCourseBySlug);
 router.get("/:id", courseController.getCourseById);
-router.put("/:id", courseController.updateCourse);
+router.put(
+  "/:id",
+  upload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "lessonVideos", maxCount: 20 },
+    { name: "documentFiles", maxCount: 20 },
+  ]),
+  authenticateToken,
+  courseController.updateCourse
+);
 router.delete("/:id", courseController.deleteCourse);
 router.patch("/toggle-publish/:id", courseController.togglePublishCourse);
 
