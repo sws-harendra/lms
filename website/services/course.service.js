@@ -156,6 +156,13 @@ export const courseService = {
   },
 
 
+  // Delete a meeting
+  deleteMeeting: async (courseId, meetingId) => {
+    const response = await axiosInstance.delete(`/course/${courseId}/meetings/${meetingId}`);
+    return response.data;
+  },
+
+  // Upload meeting recording
   uploadMeetingRecording: async (meetingId, formData) => {
     const response = await axiosInstance.post(
       `/course/meetings/${meetingId}/recording`,
@@ -168,6 +175,4 @@ export const courseService = {
     );
     return response.data;
   },
-  
-  
 };

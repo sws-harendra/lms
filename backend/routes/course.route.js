@@ -97,6 +97,7 @@ router.post(
   authenticateToken,
   addCourseMeeting
 );
+router.delete("/:id/meetings/:meetingId", authenticateToken,courseController.deleteMeeting);
 
 // Reviews
 // Public: list reviews for a course

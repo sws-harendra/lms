@@ -873,6 +873,26 @@ const uploadMeetingRecording = async (req, res) => {
   }
 };
 
+
+const deleteMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const course = await Course.findOneAndUpdate(
+      { 'meetings._id': meetingId },
+      { $pull: { meetings: { _id: meetingId } } },
+      { new: true }
+    );
+
+    if (!course) {
+      return res.status(404).json({ message: 'Meeting not found' });
+    }
+
+    res.status(200).json({ message: 'Meeting deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting meeting:', error);
+    res.status(500).json({ message: 'Server error while deleting meeting' });
+  }
+};
 module.exports = {
   getAllCourses,
   createCourse,
@@ -889,5 +909,5 @@ module.exports = {
   addNewCategory,
   updateCategory,
   deleteCategory,
-  addCourseMeeting,uploadMeetingRecording
+  addCourseMeeting,uploadMeetingRecording,deleteMeeting
 };

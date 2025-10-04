@@ -70,7 +70,9 @@ export default function PublishedCourse() {
       resetMeetingForm();
       setActiveCourseId(null);
     } catch (e) {
-      toast.error(e?.response?.data?.message || e?.message || "Failed to add meeting");
+      toast.error(
+        e?.response?.data?.message || e?.message || "Failed to add meeting"
+      );
     }
   };
 
@@ -102,7 +104,7 @@ export default function PublishedCourse() {
 
       {/* Search + Entries */}
       <div className="flex justify-between items-center">
-        <div>
+        {/* <div>
           Show{" "}
           <select className="border rounded px-2 py-1">
             <option>10</option>
@@ -110,7 +112,7 @@ export default function PublishedCourse() {
             <option>50</option>
           </select>{" "}
           entries
-        </div>
+        </div> */}
         <Input
           placeholder="Search..."
           value={search}
@@ -156,13 +158,17 @@ export default function PublishedCourse() {
               </TableCell>
               {/* Actions */}
               <TableCell className="flex gap-2">
-                <Link href={`/instructor/dashboard/courses/edit-course/${course._id}`}>
+                <Link
+                  href={`/instructor/dashboard/courses/edit-course/${course._id}`}
+                >
                   <Button variant="default" size="sm">
                     Edit
                   </Button>
                 </Link>
 
-                <Link href={`/instructor/dashboard/courses/meetings/${course._id}`}>
+                <Link
+                  href={`/instructor/dashboard/courses/meetings/${course._id}`}
+                >
                   <Button variant="default" size="sm">
                     View Meetings
                   </Button>
@@ -186,7 +192,8 @@ export default function PublishedCourse() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Add Meeting</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Create a meeting for this course. Provide a title, URL (Google Meet or any), description, and schedule time.
+                        Create a meeting for this course. Provide a title, URL
+                        (Google Meet or any), description, and schedule time.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-3">
@@ -215,10 +222,14 @@ export default function PublishedCourse() {
                       </div>
                     </div>
                     <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setActiveCourseId(null)}>
+                      <AlertDialogCancel
+                        onClick={() => setActiveCourseId(null)}
+                      >
                         Cancel
                       </AlertDialogCancel>
-                      <AlertDialogAction onClick={saveMeeting}>Save</AlertDialogAction>
+                      <AlertDialogAction onClick={saveMeeting}>
+                        Save
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { serverurl } from "@/app/contants";
+import { Trash2, Upload } from "lucide-react";
 
 export default function CourseMeetingsPage() {
   const { courseId } = useParams();
@@ -43,7 +44,6 @@ export default function CourseMeetingsPage() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file && file.type === "video/mp4") {
-      setSelectedFile(file);
     } else {
       toast.error("Please select an MP4 file");
     }
@@ -69,6 +69,21 @@ export default function CourseMeetingsPage() {
       toast.error("Failed to upload recording");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDeleteMeeting = async (meetingId) => {
+    if (!confirm("Are you sure you want to delete this meeting? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await courseService.deleteMeeting(courseId, meetingId);
+      toast.success("Meeting deleted successfully");
+      loadMeetings(); // Refresh the list
+    } catch (error) {
+      console.error("Delete failed:", error);
+      toast.error("Failed to delete meeting");
     }
   };
 
@@ -120,12 +135,27 @@ export default function CourseMeetingsPage() {
                         className="max-w-xs"
                         disabled={uploading}
                       />
-                      <Button 
-                        onClick={() => handleUpload(meeting._id)}
-                        disabled={!selectedFile || uploading}
-                      >
-                        {uploading ? "Uploading..." : "Upload"}
-                      </Button>
+<div className="flex items-center gap-2">
+                        <Button 
+                          onClick={() => handleUpload(meeting._id)}
+                          disabled={!selectedFile || uploading}
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                        >
+                          <Upload className="h-4 w-4" />
+                          {uploading ? "Uploading..." : "Upload"}
+                        </Button>
+                        <Button 
+                          onClick={() => handleDeleteMeeting(meeting._id)}
+                          variant="ghost"
+                          size="sm"
+                          disabled={uploading}
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </TableCell>
@@ -134,11 +164,10 @@ export default function CourseMeetingsPage() {
                     href={meeting.url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline mr-4"
+                    className="text-blue-600 hover:underline"
                   >
                     Join Meeting
                   </a>
-                  <Button variant="destructive" onClick={() => handleDelete(meeting._id)}>Delete</Button>
                 </TableCell>
               </TableRow>
             ))
