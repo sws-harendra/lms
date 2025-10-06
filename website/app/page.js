@@ -1,3 +1,4 @@
+"use client";
 import {
   BookOpen,
   GraduationCap,
@@ -17,8 +18,11 @@ import {
 } from "lucide-react";
 import { brandName } from "./contants";
 import Link from "next/link";
+import { useSelector } from "react-redux";
 
 const Home = () => {
+  const { settings } = useSelector((state) => state.appSettings);
+
   return (
     <div className="font-sans text-gray-800">
       {/* Navigation */}
@@ -28,7 +32,7 @@ const Home = () => {
             <div className="flex items-center">
               <GraduationCap className="h-8 w-8 text-indigo-600" />
               <span className="ml-2 text-2xl font-bold text-indigo-600">
-                {brandName}
+                {settings?.platformName}.
               </span>
             </div>
 

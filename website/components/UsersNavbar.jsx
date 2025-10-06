@@ -49,6 +49,7 @@ const UserNavbar = () => {
   const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
   const toggleNotifications = () =>
     setIsNotificationsOpen(!isNotificationsOpen);
+  const { settings } = useSelector((state) => state.appSettings);
 
   return (
     <nav className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-50 shadow-lg">
@@ -62,7 +63,7 @@ const UserNavbar = () => {
                   <GraduationCap className="h-6 w-6 " />
                 </div>
                 <span className="ml-3 text-black text-xl font-bold  bg-clip-text">
-                  {brandName}
+                  {settings?.platformName}.
                 </span>
               </div>
             </div>

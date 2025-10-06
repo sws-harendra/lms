@@ -26,8 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { brandName } from "@/app/contants";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/lib/store/features/authSlice";
 // import { logout } from "@/app/lib/store/features/authSlice"; // make sure path is correct
 
@@ -82,6 +81,7 @@ export default function AdminSidebar() {
   const [openMenus, setOpenMenus] = useState([]); // track collapsible menus
   const router = useRouter();
   const dispatch = useDispatch();
+  const { settings } = useSelector((state) => state.appSettings);
 
   // ✅ Logout handler
   const handleLogout = async () => {
@@ -119,7 +119,7 @@ export default function AdminSidebar() {
             !open && "scale-0"
           }`}
         >
-          {brandName} ADMIN
+          {settings?.platformName} ADMIN
         </h1>
 
         {/* Menu Items */}
