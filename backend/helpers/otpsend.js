@@ -19,7 +19,6 @@ const sendOtp = async (phone, otp) => {
     // throw error;
     throw new Error("Failed to send OTP");
   }
-  // e.g., await twilio.messages.create({ to: phone, body: `Your OTP: ${otp}` });
 };
 
 module.exports = { sendOtp };
