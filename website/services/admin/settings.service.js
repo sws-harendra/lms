@@ -5,8 +5,33 @@ export const settingsAdminService = {
     const res = await axiosInstance.get(`/settings`);
     return res.data; // { settings }
   },
-  update: async (payload) => {
-    const res = await axiosInstance.put(`/settings`, payload);
-    return res.data; // { message, settings }
+  // services/admin/settings.service.js
+  // services/admin/settings.service.js
+  update: async (payload, logoFile = null) => {
+    const formData = new FormData();
+
+    // Append all basic info fields individually
+    Object.keys(payload).forEach((key) => {
+      if (key === "branding" && typeof payload[key] === "object") {
+        // Append branding fields individually
+        Object.keys(payload.branding).forEach((brandKey) => {
+          formData.append(`branding[${brandKey}]`, payload.branding[brandKey]);
+        });
+      } else {
+        formData.append(key, payload[key]);
+      }
+    });
+
+    // Append logo file if exists
+    if (logoFile) {
+      formData.append("logo", logoFile);
+    }
+
+    const res = await axiosInstance.put(`/settings`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
   },
 };

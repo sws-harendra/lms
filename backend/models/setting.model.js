@@ -26,7 +26,10 @@ const brandingSchema = new mongoose.Schema(
 const seoSchema = new mongoose.Schema(
   {
     metaTitle: { type: String, default: "LMS Platform" },
-    metaDescription: { type: String, default: "Powerful learning management system" },
+    metaDescription: {
+      type: String,
+      default: "Powerful learning management system",
+    },
     metaKeywords: { type: [String], default: [] },
     socialLinks: {
       facebook: { type: String, default: "" },

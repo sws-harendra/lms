@@ -8,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import axiosInstance from "@/app/utils/axiosinterceptor";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { razorpayAdminService } from "@/services/admin/razorpay.service";
 import { settingsAdminService } from "@/services/admin/settings.service";
+import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 
 function Masked({ value, visible = false }) {
   const masked = useMemo(
@@ -40,6 +43,22 @@ const Settings = () => {
     keySecret: "",
     webhookSecret: "",
   });
+
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState("");
+
+  const [basicInfo, setBasicInfo] = useState({
+    platformName: "",
+    platformUrl: "",
+    contactEmail: "",
+    supportPhone: "",
+    address: "",
+    branding: {
+      logoUrl: "",
+      faviconUrl: "",
+    },
+  });
+
   const [activeRzp, setActiveRzp] = useState(null);
   const [showSecrets, setShowSecrets] = useState(false);
 
@@ -97,6 +116,20 @@ const Settings = () => {
             payoutThreshold: s.payoutThreshold ?? 50,
             defaultLanguage: s.defaultLanguage || "en",
           });
+          setBasicInfo({
+            platformName: s.platformName || "",
+            platformUrl: s.platformUrl || "",
+            contactEmail: s.contactEmail || "",
+            supportPhone: s.supportPhone || "",
+            address: s.address || "",
+            branding: {
+              logoUrl: s.branding?.logoUrl || "",
+              faviconUrl: s.branding?.faviconUrl || "",
+            },
+          });
+          if (s.branding?.logoUrl) {
+            setLogoPreview(s.branding.logoUrl);
+          }
         }
       } finally {
         setSettingsLoading(false);
@@ -105,6 +138,19 @@ const Settings = () => {
     loadActive();
     loadSettings();
   }, []);
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogoFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const onSaveRazorpay = async (e) => {
     e.preventDefault();
@@ -133,7 +179,69 @@ const Settings = () => {
       setRzpSaving(false);
     }
   };
+  const [basicSaving, setBasicSaving] = useState(false);
 
+  const onSaveBasicInfo = async (e) => {
+    e.preventDefault();
+    setBasicSaving(true);
+    try {
+      const formData = new FormData();
+
+      // Append all fields individually
+      formData.append("platformName", basicInfo.platformName);
+      formData.append("platformUrl", basicInfo.platformUrl);
+      formData.append("contactEmail", basicInfo.contactEmail);
+      formData.append("supportPhone", basicInfo.supportPhone);
+      formData.append("address", basicInfo.address);
+      formData.append("branding[logoUrl]", basicInfo.branding.logoUrl);
+      formData.append("branding[faviconUrl]", basicInfo.branding.faviconUrl);
+
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      // Use axios directly
+      const res = await axiosInstance.put("/settings", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (res.data?.settings) {
+        // Update local state
+        const updatedSettings = res.data.settings;
+        setBasicInfo({
+          platformName: updatedSettings.platformName,
+          platformUrl: updatedSettings.platformUrl,
+          contactEmail: updatedSettings.contactEmail,
+          supportPhone: updatedSettings.supportPhone,
+          address: updatedSettings.address,
+          branding: {
+            logoUrl: updatedSettings.branding?.logoUrl || "",
+            faviconUrl: updatedSettings.branding?.faviconUrl || "",
+          },
+        });
+
+        if (updatedSettings.branding?.logoUrl) {
+          setLogoPreview(updatedSettings.branding.logoUrl);
+        }
+
+        setLogoFile(null);
+        toast.success("Basic Info updated!");
+      } else {
+        toast.error("Failed to update basic info");
+      }
+    } catch (error) {
+      console.error("Error saving basic info:", error);
+      toast.error("Error saving basic info");
+    } finally {
+      setBasicSaving(false);
+    }
+  };
+  const clearLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(basicInfo.branding.logoUrl); // Revert to existing logo
+  };
   const onSaveSettings = async (e) => {
     e.preventDefault();
     setSettingsSaving(true);
@@ -166,8 +274,10 @@ const Settings = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="payments" className="w-full">
+      <Tabs defaultValue="basicInfo" className="w-full">
         <TabsList>
+          {" "}
+          <TabsTrigger value="basicInfo">Basic Info</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           {/* <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="site">Site</TabsTrigger>
@@ -392,6 +502,162 @@ const Settings = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        <TabsContent value="basicInfo" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Info</CardTitle>
+              <CardDescription>
+                Manage branding and contact details.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onSaveBasicInfo} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="platformName">Platform / Brand Name</Label>
+                    <Input
+                      id="platformName"
+                      value={basicInfo.platformName}
+                      onChange={(e) =>
+                        setBasicInfo((s) => ({
+                          ...s,
+                          platformName: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. EduMaster LMS"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="platformUrl">Website URL</Label>
+                    <Input
+                      id="platformUrl"
+                      value={basicInfo.platformUrl}
+                      onChange={(e) =>
+                        setBasicInfo((s) => ({
+                          ...s,
+                          platformUrl: e.target.value,
+                        }))
+                      }
+                      placeholder="https://yourdomain.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="contactEmail">Contact Email</Label>
+                    <Input
+                      id="contactEmail"
+                      value={basicInfo.contactEmail}
+                      onChange={(e) =>
+                        setBasicInfo((s) => ({
+                          ...s,
+                          contactEmail: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="supportPhone">Support Phone</Label>
+                    <Input
+                      id="supportPhone"
+                      value={basicInfo.supportPhone}
+                      onChange={(e) =>
+                        setBasicInfo((s) => ({
+                          ...s,
+                          supportPhone: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={basicInfo.address}
+                    onChange={(e) =>
+                      setBasicInfo((s) => ({ ...s, address: e.target.value }))
+                    }
+                  />
+                </div>
+
+                {/* Updated Logo Upload Section */}
+                <div className="grid gap-2">
+                  <Label htmlFor="logo">Brand Logo</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="logo"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="max-w-sm"
+                    />
+                    {logoFile && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={clearLogo}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Logo Preview */}
+                  {(logoPreview || basicInfo.branding.logoUrl) && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Logo Preview:
+                      </p>
+                      <img
+                        src={
+                          // If it's a data URL (local file preview), use it directly
+                          // Otherwise, use getMediaUrl for server URLs
+                          logoPreview && logoPreview.startsWith("data:")
+                            ? logoPreview
+                            : getMediaUrl(
+                                logoPreview || basicInfo.branding.logoUrl
+                              )
+                        }
+                        alt="Logo preview"
+                        className="h-16 rounded border object-contain"
+                      />
+                    </div>
+                  )}
+                  {/* Existing logo URL field (optional - you can remove this if you only want file upload) */}
+                  {/* <div className="mt-2 grid gap-2">
+                    <Label
+                      htmlFor="logoUrl"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Or enter logo URL:
+                    </Label>
+                    <Input
+                      id="logoUrl"
+                      placeholder="https://example.com/logo.png"
+                      value={basicInfo.branding.logoUrl}
+                      onChange={(e) =>
+                        setBasicInfo((s) => ({
+                          ...s,
+                          branding: { ...s.branding, logoUrl: e.target.value },
+                        }))
+                      }
+                      className="text-sm"
+                    />
+                  </div> */}
+                </div>
+
+                <Button type="submit" disabled={basicSaving}>
+                  {basicSaving ? "Saving..." : "Save Basic Info"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Email, Site, Features Tabs - unchanged */}

@@ -23,6 +23,7 @@ const getSettings = async (req, res) => {
 // PUT /api/settings
 const updateSettings = async (req, res) => {
   try {
+    const logoFile = req.file;
     // Whitelist fields to avoid arbitrary updates
     const allowed = [
       "platformName",
@@ -48,6 +49,10 @@ const updateSettings = async (req, res) => {
       if (req.body[key] !== undefined) {
         update[key] = req.body[key];
       }
+    }
+
+    if (logoFile) {
+      update.branding.logoUrl = `/uploads/${logoFile.filename}`;
     }
 
     const doc = await Setting.findOneAndUpdate({}, update, {
