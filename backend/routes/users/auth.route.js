@@ -12,6 +12,8 @@ router.post("/sendEmailForVerification", auth.resendEmailVerification);
 router.post("/resendOtp", auth.resendOtpToPhone);
 router.get("/userdetails", authenticateToken, auth.userdetail);
 router.post("/refreshtoken", auth.refreshToken);
+router.post("/send-otp", auth.sendOtpToPhone);
+router.post("/verify-otp", auth.verifyPhoneOtp);
 router.post("/logout", authenticateToken, auth.logout);
 router.put(
   "/updateprofile",

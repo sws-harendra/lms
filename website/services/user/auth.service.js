@@ -12,16 +12,16 @@ export const authService = {
 
   // Send OTP to phone
   sendOtpToPhone: async (phoneNumber) => {
-    const response = await axiosInstance.post("/user/auth/send-otp", {
-      phoneNumber,
+    const response = await axiosInstance.post("/user/send-otp", {
+      phone: phoneNumber,
     });
     return response.data;
   },
 
   // Verify phone OTP
   verifyPhoneOtp: async (phoneNumber, otp) => {
-    const response = await axiosInstance.post("/user/auth/verify-otp", {
-      phoneNumber,
+    const response = await axiosInstance.post("/user/verify-otp", {
+      phone: phoneNumber,
       otp,
     });
     return response.data;
@@ -29,7 +29,7 @@ export const authService = {
 
   // Resend OTP
   resendOtp: async (phoneNumber) => {
-    const response = await axiosInstance.post("/user/auth/resend-otp", {
+    const response = await axiosInstance.post("/user/resend-otp", {
       phone: phoneNumber,
     });
     return response.data;

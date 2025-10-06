@@ -9,41 +9,63 @@ const {
 const sendMail = require("../../helpers/mailsend");
 const { generateRandom5DigitNumber } = require("../../helpers/otpGenerator");
 const otpModel = require("../../models/otp.model");
-
+const { sendOtp } = require("../../helpers/otpsend");
 // You'll need to implement this function for SMS OTP
 
 // Phone OTP Registration/Login
 const sendOtpToPhone = async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) return res.status(400).json({ message: "Phone required" });
+    if (!phone)
+      return res.status(400).json({ message: "Phone number is required" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
+    // Create or update OTP record
+    await otpModel.findOneAndUpdate(
+      { contact: phone, contactType: "phone" },
+      {
+        contact: phone,
+        contactType: "phone",
+        otp,
+        expiresAt,
+        used: false,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // Check if user exists
     let user = await User.findOne({ phone });
     if (!user) {
-      // Register new phone user
+      // Create new user if doesn't exist
       user = new User({
         phone,
-        otpCode: otp,
-        otpExpiry: expiry,
         isVerified: false,
         sessions: [],
-        maxDevices: 5, // default value
+        maxDevices: 5,
+        email: "", // Placeholder, as email is required in schema
+        name: "User" + phone.slice(-4), // Placeholder name
       });
-    } else {
-      user.otpCode = otp;
-      user.otpExpiry = expiry;
+      await user.save();
     }
 
-    await user.save();
+    // TODO: Uncomment and implement your SMS service
     await sendOtp(phone, otp);
+    console.log(`OTP for ${phone}: ${otp}`); // For development only
 
-    res.json({ message: "OTP sent to phone" });
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully",
+      expiresIn: 5 * 60, // 5 minutes in seconds
+    });
   } catch (error) {
     console.error("Send OTP error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to send OTP",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };
 
@@ -52,23 +74,47 @@ const verifyPhoneOtp = async (req, res) => {
     const { phone, otp } = req.body;
 
     if (!phone || !otp) {
-      return res.status(400).json({ message: "Phone and OTP are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Phone number and OTP are required",
+      });
     }
 
-    const user = await User.findOne({ phone });
+    // Find the OTP record
+    const otpRecord = await otpModel.findOne({
+      contact: phone,
+      contactType: "phone",
+      used: false,
+      expiresAt: { $gt: new Date() },
+    });
 
-    if (!user || user.otpCode !== otp || user.otpExpiry < new Date()) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+    if (!otpRecord || otpRecord.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
     }
 
-    user.isVerified = true;
-    user.otpCode = null;
-    user.otpExpiry = null;
+    // Mark OTP as used
+    otpRecord.used = true;
+    await otpRecord.save();
+
+    // Find or create user
+    let user = await User.findOne({ phone });
+    if (!user) {
+      user = new User({
+        phone,
+        isVerified: true,
+        sessions: [],
+        maxDevices: 5,
+      });
+    } else {
+      user.isVerified = true;
+    }
 
     // Enforce max devices
     if (user.sessions.length >= user.maxDevices) {
-      // Remove oldest session
-      user.sessions.shift();
+      user.sessions.shift(); // Remove oldest session
     }
 
     const refreshToken = generateRefreshToken(user);
@@ -83,24 +129,39 @@ const verifyPhoneOtp = async (req, res) => {
 
     await user.save();
 
-    res.cookie("accessToken", accessToken, {
+    // Set HTTP-only cookies
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
+    };
+
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.json({ message: "Login successful" });
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: {
+        id: user._id,
+        phone: user.phone,
+        isVerified: user.isVerified,
+      },
+    });
   } catch (error) {
     console.error("Verify OTP error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify OTP",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };
 

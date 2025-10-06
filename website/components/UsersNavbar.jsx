@@ -168,7 +168,7 @@ const UserNavbar = () => {
                       {user?.name || "John Doe"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {user?.email || "john.doe@university.edu"}
+                      {user?.email || "NA"}
                     </p>
                   </div>
                   <Link href={"/user/profile"}>

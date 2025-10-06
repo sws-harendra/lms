@@ -45,8 +45,6 @@ export function LoginForm({ className, ...props }) {
     }
   }, [error]);
 
-  
-
   // Redirect if authenticated
   useEffect(() => {
     if (isAuthenticated)
@@ -208,7 +206,7 @@ export function LoginForm({ className, ...props }) {
               type="tel"
               placeholder="+1 (555) 000-0000"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              onChange={(e) => dispatch(setPhoneNumber(e.target.value))} // ✅ dispatch action
               required
             />
           </div>
