@@ -22,11 +22,28 @@ export const submitQuizAttempt = createAsyncThunk(
   "enrollment/submitQuizAttempt",
   async ({ enrollmentId, payload }, { rejectWithValue }) => {
     try {
-      const response = await enrollmentService.submitQuizAttempt(enrollmentId, payload);
+      const response = await enrollmentService.submitQuizAttempt(
+        enrollmentId,
+        payload
+      );
       return response;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to submit quiz attempt"
+      );
+    }
+  }
+);
+
+export const downloadCertificate = createAsyncThunk(
+  "enrollment/downloadCertificate",
+  async ({ enrollmentId }, { rejectWithValue }) => {
+    try {
+      const blob = await enrollmentService.downloadCertificate(enrollmentId);
+      return blob; // ✅ Return pure PDF blob
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to download certificate"
       );
     }
   }

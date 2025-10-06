@@ -8,7 +8,7 @@ const {
   markLessonCompleted,
   checkCourseAccess,
   getEnrollmentandEarning,
-  submitQuizAttempt,
+  submitQuizAttempt,downloadCertificate
 } = require("../controllers/courseEnrollment.controller");
 const { authenticateToken } = require("../middlewares/user.auth");
 router.get("/myearning", authenticateToken, getEnrollmentandEarning);
@@ -29,5 +29,6 @@ router.post(
   submitQuizAttempt
 );
 router.get("/access/:courseId", authenticateToken, checkCourseAccess);
+router.post("/:enrollmentId/download-certificate", authenticateToken, downloadCertificate);
 
 module.exports = router;

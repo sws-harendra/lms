@@ -6,15 +6,16 @@ import { useParams } from "next/navigation";
 import {
   getCourseById,
   getCourseReviews,
-  getMyReviewForCourse,
   addOrUpdateReview,
+  getMyReviewForCourse,
   deleteMyReview,
 } from "@/lib/store/features/courseSlice";
 import {
   checkCourseAccess,
   getEnrollmentDetails,
   markLessonCompleted,
-  submitQuizAttempt
+  submitQuizAttempt,
+  downloadCertificate,
 } from "@/lib/store/features/enrollmentSlice";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/videoPlayer";
@@ -36,6 +37,7 @@ import {
 } from "lucide-react";
 import { getMediaUrl } from "@/app/utils/getAssetsUrl";
 import { serverurl } from "@/app/contants";
+import { toast } from "sonner";
 
 const LearningPage = () => {
   const { id } = useParams();
@@ -90,7 +92,8 @@ const LearningPage = () => {
   const getActiveEnrollmentId = () => {
     if (courseAccess?.enrollment?._id) return courseAccess.enrollment._id;
     if (currentEnrollment?._id) return currentEnrollment._id;
-    if (currentEnrollment?.enrollment?._id) return currentEnrollment.enrollment._id;
+    if (currentEnrollment?.enrollment?._id)
+      return currentEnrollment.enrollment._id;
     return null;
   };
   useEffect(() => {
@@ -200,11 +203,46 @@ const LearningPage = () => {
     }
   };
 
-  const handleDownloadCertificate = () => {
-    console.log("Downloading certificate...");
-    alert("Certificate download functionality would be implemented here");
-  };
+  const handleDownloadCertificate = async () => {
+    if (!id) return;
 
+    try {
+      const enrollmentId = getActiveEnrollmentId();
+      if (!enrollmentId) {
+        throw new Error("No active enrollment found");
+      }
+
+      // Dispatch the download certificate action
+      const response = await dispatch(downloadCertificate({ enrollmentId }));
+
+      // Get the blob from the response
+      const blob = new Blob([response.payload], { type: "application/pdf" });
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor element to trigger the download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Certificate-${
+        currentCourse?.title?.replace(/\s+/g, "-") || "Course"
+      }.pdf`;
+
+      // Append to body, click and remove
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Release the blob URL
+      window.URL.revokeObjectURL(url);
+
+      // Show success message
+      toast.success("Certificate downloaded successfully!");
+    } catch (error) {
+      console.error("Error downloading certificate:", error);
+      toast.error(error.message || "Failed to download certificate");
+    }
+  };
   const handleSubmitReview = async () => {
     if (userRating > 0 && userReview.trim()) {
       try {
@@ -236,10 +274,11 @@ const LearningPage = () => {
 
   const hasAccess = courseAccess?.hasAccess;
   const certificateEnabled = currentCourse?.certificateEnabled;
-  const totalLessons = currentCourse?.sections?.reduce(
-    (total, section) => total + (section.lessons?.length || 0),
-    0
-  ) || 0;
+  const totalLessons =
+    currentCourse?.sections?.reduce(
+      (total, section) => total + (section.lessons?.length || 0),
+      0
+    ) || 0;
   const progressPercentage =
     totalLessons > 0 ? (completedLessons.size / totalLessons) * 100 : 0;
 
@@ -294,10 +333,10 @@ const LearningPage = () => {
     });
     const total = qs.reduce((sum, q) => sum + (q.points || 1), 0);
     const passed = (activeQuiz.quiz.passScore || 0) <= score;
-  
+
     setQuizSubmitted(true);
     setQuizResult({ score, total, passed });
-  
+
     // Persist attempt
     const enrollmentId = getActiveEnrollmentId();
     if (enrollmentId) {
@@ -306,17 +345,17 @@ const LearningPage = () => {
         activeQuiz.scope === "section"
           ? currentCourse?.sections?.[activeQuiz.sectionIndex]?._id
           : undefined;
-  
+
       const payload = {
-        scope: activeQuiz.scope,          // 'section' | 'summary'
-        sectionId,                        // only for section quiz
+        scope: activeQuiz.scope, // 'section' | 'summary'
+        sectionId, // only for section quiz
         quizTitle: activeQuiz.quiz.title || "",
         score,
         total,
         passed,
         responses: quizResponses,
       };
-  
+
       try {
         await dispatch(submitQuizAttempt({ enrollmentId, payload })).unwrap();
         // Optionally refresh enrollment details if you want the latest progress everywhere:
@@ -338,8 +377,8 @@ const LearningPage = () => {
   const tabs = [
     { id: "overview", label: "Overview", icon: BookOpen },
     { id: "learning", label: "What You'll Learn", icon: TrendingUp },
-    { id: "reviews", label: "Reviews", icon: MessageSquare },    { id: "meetings", label: "Live Sessions", icon: Video },
-
+    { id: "reviews", label: "Reviews", icon: MessageSquare },
+    { id: "meetings", label: "Live Sessions", icon: Video },
   ];
 
   if (status === "loading")
@@ -460,25 +499,37 @@ const LearningPage = () => {
           <div className="flex-1 p-8">
             {activeQuiz ? (
               <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
-              {currentEnrollment?.progress?.quizAttempts?.length > 0 && (
-  <div className="bg-white rounded-xl shadow-sm p-4 mt-6">
-    <h4 className="font-semibold text-gray-900 mb-2">Quiz History</h4>
-    <div className="space-y-2">
-      {currentEnrollment.progress.quizAttempts.slice().reverse().map((a, i) => (
-        <div key={i} className="text-sm text-gray-700 flex justify-between">
-          <div>
-            <span className="font-medium">{a.quizTitle || "Quiz"}</span>{" "}
-            <span className="text-gray-500">({a.scope})</span>
-          </div>
-          <div>
-            {a.score}/{a.total} • {a.passed ? "Passed" : "Not Passed"} •{" "}
-            {new Date(a.submittedAt).toLocaleString()}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}  <div className="flex items-center justify-between">
+                {currentEnrollment?.progress?.quizAttempts?.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 mt-6">
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Quiz History
+                    </h4>
+                    <div className="space-y-2">
+                      {currentEnrollment.progress.quizAttempts
+                        .slice()
+                        .reverse()
+                        .map((a, i) => (
+                          <div
+                            key={i}
+                            className="text-sm text-gray-700 flex justify-between"
+                          >
+                            <div>
+                              <span className="font-medium">
+                                {a.quizTitle || "Quiz"}
+                              </span>{" "}
+                              <span className="text-gray-500">({a.scope})</span>
+                            </div>
+                            <div>
+                              {a.score}/{a.total} •{" "}
+                              {a.passed ? "Passed" : "Not Passed"} •{" "}
+                              {new Date(a.submittedAt).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}{" "}
+                <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">
                       {activeQuiz.quiz.title}
@@ -506,7 +557,6 @@ const LearningPage = () => {
                     </div>
                   )}
                 </div>
-
                 <div className="space-y-4">
                   {activeQuiz.quiz.questions.map((q, qIndex) => (
                     <div key={qIndex} className="border rounded-lg p-4">
@@ -520,7 +570,10 @@ const LearningPage = () => {
                       </div>
                       <div className="space-y-2">
                         {q.options.map((opt, oIndex) => (
-                          <label key={oIndex} className="flex items-center gap-2">
+                          <label
+                            key={oIndex}
+                            className="flex items-center gap-2"
+                          >
                             <input
                               type="radio"
                               name={`q-${qIndex}`}
@@ -541,7 +594,6 @@ const LearningPage = () => {
                     </div>
                   ))}
                 </div>
-
                 {!quizSubmitted ? (
                   <div className="flex justify-end">
                     <Button
@@ -604,7 +656,9 @@ const LearningPage = () => {
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         Lesson Description
                       </h3>
-                      <p className="text-gray-600">{activeLesson.description}</p>
+                      <p className="text-gray-600">
+                        {activeLesson.description}
+                      </p>
                     </div>
                     {hasAccess && !isLessonCompleted(activeLesson._id) && (
                       <Button
@@ -703,7 +757,8 @@ const LearningPage = () => {
                               </span>
                             </div>
                             <p className="text-purple-700">
-                              {currentCourse.enrolledUsers?.length || 0} enrolled
+                              {currentCourse.enrolledUsers?.length || 0}{" "}
+                              enrolled
                             </p>
                           </div>
                         </div>
@@ -725,7 +780,6 @@ const LearningPage = () => {
                         </div>
                       </div>
                     )}
-
                     {activeTab === "learning" && (
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-4">
@@ -746,7 +800,6 @@ const LearningPage = () => {
                         </div>
                       </div>
                     )}
-
                     {activeTab === "reviews" && (
                       <div className="space-y-6">
                         {/* Rating Overview */}
@@ -896,114 +949,140 @@ const LearningPage = () => {
                         </div>
                       </div>
                     )}
+                    {activeTab === "meetings" && (
+                      <div className="space-y-6">
+                        <h4 className="font-semibold text-gray-900">
+                          Upcoming & Past Live Sessions
+                        </h4>
 
-{activeTab === "meetings" && (
-  <div className="space-y-6">
-    <h4 className="font-semibold text-gray-900">
-      Upcoming & Past Live Sessions
-    </h4>
-    
-    {currentCourse?.meetings?.length > 0 ? (
-      <div className="space-y-4">
-       {[...currentCourse.meetings]
-  .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
-  .map((meeting) => {
-    const isUpcoming = new Date(meeting.scheduledAt) > new Date();
-    const isRecordingAvailable = !!meeting.recordingUrl;
+                        {currentCourse?.meetings?.length > 0 ? (
+                          <div className="space-y-4">
+                            {[...currentCourse.meetings]
+                              .sort(
+                                (a, b) =>
+                                  new Date(a.scheduledAt) -
+                                  new Date(b.scheduledAt)
+                              )
+                              .map((meeting) => {
+                                const isUpcoming =
+                                  new Date(meeting.scheduledAt) > new Date();
+                                const isRecordingAvailable =
+                                  !!meeting.recordingUrl;
 
-    return (
+                                return (
+                                  <div
+                                    key={meeting._id}
+                                    className={`border rounded-lg overflow-hidden ${
+                                      isUpcoming
+                                        ? "border-blue-200 bg-blue-50"
+                                        : "border-gray-200 bg-white"
+                                    }`}
+                                  >
+                                    <div className="p-4">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                          <div className="flex items-center mb-1">
+                                            <h5 className="font-medium text-gray-900 mr-2">
+                                              {meeting.title}
+                                            </h5>
+                                            {isUpcoming ? (
+                                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Upcoming
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                Completed
+                                              </span>
+                                            )}
+                                          </div>
 
-              <div 
-                key={meeting._id} 
-                className={`border rounded-lg overflow-hidden ${
-                  isUpcoming ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'
-                }`}
-              >
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-1">
-                        <h5 className="font-medium text-gray-900 mr-2">
-                          {meeting.title}
-                        </h5>
-                        {isUpcoming ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Upcoming
-                          </span>
+                                          <div className="flex items-center text-sm text-gray-600 mb-2">
+                                            <Calendar
+                                              size={14}
+                                              className="mr-1.5"
+                                            />
+                                            {new Date(
+                                              meeting.scheduledAt
+                                            ).toLocaleString("en-US", {
+                                              weekday: "short",
+                                              month: "short",
+                                              day: "numeric",
+                                              year: "numeric",
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                              hour12: true,
+                                            })}
+                                          </div>
+
+                                          {meeting.description && (
+                                            <p className="text-sm text-gray-600 mb-3">
+                                              {meeting.description}
+                                            </p>
+                                          )}
+                                        </div>
+
+                                        <div className="flex flex-col space-y-2">
+                                          {isUpcoming ? (
+                                            <a
+                                              href={meeting.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            >
+                                              <ExternalLink
+                                                size={14}
+                                                className="mr-1.5"
+                                              />
+                                              Join Session
+                                            </a>
+                                          ) : isRecordingAvailable ? (
+                                            <button
+                                              onClick={() => {
+                                                setActiveLesson({
+                                                  ...activeLesson,
+                                                  videoUrl:
+                                                    meeting.recordingUrl,
+                                                  title: `${meeting.title} - Recording`,
+                                                  isMeetingRecording: true,
+                                                });
+                                              }}
+                                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                            >
+                                              <PlayCircle
+                                                size={14}
+                                                className="mr-1.5"
+                                              />
+                                              Watch Recording
+                                            </button>
+                                          ) : (
+                                            <span className="text-xs text-gray-500">
+                                              No recording available
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Completed
-                          </span>
+                          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                            <Video
+                              size={32}
+                              className="mx-auto text-gray-400 mb-2"
+                            />
+                            <p className="text-gray-600">
+                              No live sessions scheduled yet
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Check back later for upcoming sessions
+                            </p>
+                          </div>
                         )}
                       </div>
-                      
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <Calendar size={14} className="mr-1.5" />
-                        {new Date(meeting.scheduledAt).toLocaleString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true
-                        })}
-                      </div>
-                      
-                      {meeting.description && (
-                        <p className="text-sm text-gray-600 mb-3">
-                          {meeting.description}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-col space-y-2">
-                      {isUpcoming ? (
-                        <a
-                          href={ meeting.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          <ExternalLink size={14} className="mr-1.5" />
-                          Join Session
-                        </a>
-                      ) : isRecordingAvailable ? (
-                        <button
-                          onClick={() => {
-                            setActiveLesson({
-                              ...activeLesson,
-                              videoUrl: meeting.recordingUrl,
-                              title: `${meeting.title} - Recording`,
-                              isMeetingRecording: true
-                            });
-                          }}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                        >
-                          <PlayCircle size={14} className="mr-1.5" />
-                          Watch Recording
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-500">
-                          No recording available
-                        </span>
-                      )}
-                    </div>
+                    )}{" "}
                   </div>
-                </div>
-              </div>
-            );
-  })}
-      </div>
-    ) : (
-      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-        <Video size={32} className="mx-auto text-gray-400 mb-2" />
-        <p className="text-gray-600">No live sessions scheduled yet</p>
-        <p className="text-sm text-gray-500 mt-1">Check back later for upcoming sessions</p>
-      </div>
-    )}
-  </div>
-)}                  </div>
                 </div>
               </div>
             ) : (

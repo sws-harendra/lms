@@ -58,16 +58,26 @@ export const enrollmentService = {
   },
 
   submitQuizAttempt: async (enrollmentId, payload) => {
-  const response = await axiosInstance.post(
-    `/enrollment/${enrollmentId}/submit-quiz`,
-    payload
-  );
-  return response.data;
-},
+    const response = await axiosInstance.post(
+      `/enrollment/${enrollmentId}/submit-quiz`,
+      payload
+    );
+    return response.data;
+  },
   getAllEnrollmentsForPublisher: async (page = 1, limit = 10, search = "") => {
     const response = await axiosInstance.get(
       `/enrollment/myearning?page=${page}&limit=${limit}&search=${search}`
     );
+    return response.data;
+  },
+
+  // Download course certificate
+  downloadCertificate: async (enrollmentId) => {
+    const response = await axiosInstance({
+      url: `/enrollment/${enrollmentId}/download-certificate`,
+      method: "POST",
+      responseType: "blob",
+    });
     return response.data;
   },
 };

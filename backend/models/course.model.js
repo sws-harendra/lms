@@ -234,6 +234,10 @@ const courseSchema = new mongoose.Schema(
       default: false,
     },
 
+    templateName: {
+      type: String,
+      default: "certificate1",
+    },
     // Additional useful fields
     totalDuration: {
       type: Number,

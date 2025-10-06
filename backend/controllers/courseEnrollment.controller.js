@@ -1,3 +1,7 @@
+const fs = require("fs");
+const path = require("path");
+const handlebars = require("handlebars");
+const puppeteer = require("puppeteer");
 const Enrollment = require("../models/enrollment.model");
 const Course = require("../models/course.model");
 const Payment = require("../models/payment.model");
@@ -446,6 +450,117 @@ const submitQuizAttempt = async (req, res) => {
   }
 };
 
+const downloadCertificate = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const userId = req.user.id;
+
+    // 1. Check if enrollment exists and get progress
+    const enrollment = await Enrollment.findOne({
+      _id: enrollmentId,
+      user: userId,
+      status: "completed",
+    }).populate("course", "title templateName");
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment not found or course not completed",
+      });
+    }
+
+    // 2. Get course details and check template
+    const course = await Course.findById(enrollment.course);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // 3. Check if course has a template
+    const templateName = course.templateName || "certificate1";
+    const templatePath = path.join(
+      __dirname,
+      "..",
+      "templates",
+      "certificate",
+      `${templateName}.hbs`
+    );
+    console.log("===>", templatePath);
+    // 4. Read the template
+    const template = fs.readFileSync(templatePath, "utf8");
+    const compiledTemplate = handlebars.compile(template);
+    console.log("Template compiled", compiledTemplate);
+    // 5. Get user details
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // 6. Prepare certificate data
+    const certificateData = {
+      studentName: user.name,
+      courseName: course.title,
+      completionDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      certificateId: `CERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    };
+
+    // 7. Generate HTML
+    const html = compiledTemplate(certificateData);
+    // console.log("Generated HTML", html);
+    // 8. Generate PDF
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
+
+    // Set the PDF options
+    const pdfOptions = {
+      format: "A4",
+      printBackground: true,
+      landscape: true, // 👈 make sure you add this
+      preferCSSPageSize: true,
+      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    };
+
+    // Generate PDF
+    const pdf = await page.pdf(pdfOptions);
+    await browser.close();
+
+    // 9. Set response headers for download
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Certificate-${course.title.replace(
+        /\s+/g,
+        "-"
+      )}-${user.name.replace(/\s+/g, "-")}.pdf`
+    );
+
+    // 10. Send the PDF
+    res.write(pdf);
+    res.end();
+  } catch (error) {
+    console.error("Error generating certificate:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error generating certificate",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   enrollInCourse,
   // completeEnrollment,
@@ -455,4 +570,5 @@ module.exports = {
   checkCourseAccess,
   getEnrollmentandEarning,
   submitQuizAttempt,
+  downloadCertificate,
 };
