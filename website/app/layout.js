@@ -4,6 +4,7 @@ import { StoreProvider } from "@/lib/provider/StoreProvider";
 import { Toaster } from "sonner";
 import AuthProvider from "@/hooks/authProvider";
 import { AppInitializer } from "@/hooks/app-setting";
+import { TranslationProvider } from "@/contexts/TranslationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +29,7 @@ export default function RootLayout({ children }) {
       >
         <StoreProvider>
           <AppInitializer>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider><TranslationProvider>{children}</TranslationProvider></AuthProvider>
           </AppInitializer>
           <Toaster />
         </StoreProvider>
