@@ -558,6 +558,7 @@ const createCourse = async (req, res) => {
       tags,
       price,
       discountPrice,
+      templateName: certificateEnabled ? req.body.templateName : undefined,
       isFree,
       isPublished,
       instructor: instructor || req.user?.id,

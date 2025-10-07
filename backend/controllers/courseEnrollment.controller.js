@@ -518,9 +518,10 @@ const downloadCertificate = async (req, res) => {
     // console.log("Generated HTML", html);
     // 8. Generate PDF
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+      executablePath: '/usr/bin/chromium-browser',
+          headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });

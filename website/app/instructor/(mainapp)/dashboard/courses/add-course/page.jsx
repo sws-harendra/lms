@@ -61,6 +61,23 @@ export default function EnhancedCourseForm() {
   // Settings
   const [isPublished, setIsPublished] = useState(false);
   const [certificateEnabled, setCertificateEnabled] = useState(false);
+  const [templateName, setTemplateName] = useState("certificate1");
+
+  // Available certificate templates
+  const certificateTemplates = [
+    {
+      id: "certificate1",
+      name: "Modern Green",
+      preview: "/certificate-templates/certificate1-preview.png",
+    },
+    {
+      id: "certificate2",
+      name: "Modern Orange",
+      preview: "/certificate-templates/certificate2-preview.png",
+    },
+
+    // Add more templates as they become available
+  ];
 
   // Tags
   const [tags, setTags] = useState([]);
@@ -137,7 +154,9 @@ export default function EnhancedCourseForm() {
     }
     try {
       setCatSubmitting(true);
-      const res = await dispatch(courseActions.createCategory({ name, slug: slugVal })).unwrap();
+      const res = await dispatch(
+        courseActions.createCategory({ name, slug: slugVal })
+      ).unwrap();
       const created = res.category || res;
       if (created?._id) {
         setCategory(created._id);
@@ -148,7 +167,9 @@ export default function EnhancedCourseForm() {
       setNewCatSlug("");
       setCatError("");
     } catch (e) {
-      setCatError(typeof e === "string" ? e : e?.message || "Failed to create category");
+      setCatError(
+        typeof e === "string" ? e : e?.message || "Failed to create category"
+      );
     } finally {
       setCatSubmitting(false);
     }
@@ -352,24 +373,40 @@ export default function EnhancedCourseForm() {
     }
   };
 
-  const updateQuestionField = (sectionIndex, quizIndex, questionIndex, field, value) => {
+  const updateQuestionField = (
+    sectionIndex,
+    quizIndex,
+    questionIndex,
+    field,
+    value
+  ) => {
     const newSections = [...sections];
-    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex][field] = value;
+    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex][
+      field
+    ] = value;
     setSections(newSections);
   };
 
   const addOption = (sectionIndex, quizIndex, questionIndex) => {
     const newSections = [...sections];
-    const opts = newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex].options;
+    const opts =
+      newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex]
+        .options;
     if (opts.length < 10) {
       opts.push("");
       setSections(newSections);
     }
   };
 
-  const removeOption = (sectionIndex, quizIndex, questionIndex, optionIndex) => {
+  const removeOption = (
+    sectionIndex,
+    quizIndex,
+    questionIndex,
+    optionIndex
+  ) => {
     const newSections = [...sections];
-    const q = newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex];
+    const q =
+      newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex];
     if (q.options.length > 2) {
       q.options.splice(optionIndex, 1);
       if (q.correctOptionIndex >= q.options.length) {
@@ -379,15 +416,30 @@ export default function EnhancedCourseForm() {
     }
   };
 
-  const updateOption = (sectionIndex, quizIndex, questionIndex, optionIndex, value) => {
+  const updateOption = (
+    sectionIndex,
+    quizIndex,
+    questionIndex,
+    optionIndex,
+    value
+  ) => {
     const newSections = [...sections];
-    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex].options[optionIndex] = value;
+    newSections[sectionIndex].quizzes[quizIndex].questions[
+      questionIndex
+    ].options[optionIndex] = value;
     setSections(newSections);
   };
 
-  const setCorrectOption = (sectionIndex, quizIndex, questionIndex, optionIndex) => {
+  const setCorrectOption = (
+    sectionIndex,
+    quizIndex,
+    questionIndex,
+    optionIndex
+  ) => {
     const newSections = [...sections];
-    newSections[sectionIndex].quizzes[quizIndex].questions[questionIndex].correctOptionIndex = optionIndex;
+    newSections[sectionIndex].quizzes[quizIndex].questions[
+      questionIndex
+    ].correctOptionIndex = optionIndex;
     setSections(newSections);
   };
 
@@ -401,7 +453,13 @@ export default function EnhancedCourseForm() {
       isFree: false,
       order: 0,
       questions: [
-        { question: "", options: ["", ""], correctOptionIndex: 0, points: 1, explanation: "" },
+        {
+          question: "",
+          options: ["", ""],
+          correctOptionIndex: 0,
+          points: 1,
+          explanation: "",
+        },
       ],
     });
   };
@@ -415,7 +473,13 @@ export default function EnhancedCourseForm() {
       ...prev,
       questions: [
         ...prev.questions,
-        { question: "", options: ["", ""], correctOptionIndex: 0, points: 1, explanation: "" },
+        {
+          question: "",
+          options: ["", ""],
+          correctOptionIndex: 0,
+          points: 1,
+          explanation: "",
+        },
       ],
     }));
   };
@@ -423,7 +487,10 @@ export default function EnhancedCourseForm() {
   const removeSummaryQuestion = (qIndex) => {
     setSummaryQuiz((prev) => ({
       ...prev,
-      questions: prev.questions.length > 1 ? prev.questions.filter((_, i) => i !== qIndex) : prev.questions,
+      questions:
+        prev.questions.length > 1
+          ? prev.questions.filter((_, i) => i !== qIndex)
+          : prev.questions,
     }));
   };
 
@@ -452,7 +519,11 @@ export default function EnhancedCourseForm() {
         const newOpts = qs[qIndex].options.filter((_, i) => i !== optIndex);
         let correct = qs[qIndex].correctOptionIndex;
         if (correct >= newOpts.length) correct = 0;
-        qs[qIndex] = { ...qs[qIndex], options: newOpts, correctOptionIndex: correct };
+        qs[qIndex] = {
+          ...qs[qIndex],
+          options: newOpts,
+          correctOptionIndex: correct,
+        };
       }
       return { ...prev, questions: qs };
     });
@@ -494,6 +565,9 @@ export default function EnhancedCourseForm() {
     formData.append("isFree", isFree.toString());
     formData.append("isPublished", isPublished.toString());
     formData.append("certificateEnabled", certificateEnabled.toString());
+    if (certificateEnabled) {
+      formData.append("templateName", templateName);
+    }
 
     // Append arrays
     tags.forEach((tag) => {
@@ -567,7 +641,8 @@ export default function EnhancedCourseForm() {
         questions: (quiz.questions || []).map((q) => ({
           question: q.question,
           options: (q.options || []).slice(0, 10),
-          correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+          correctOptionIndex:
+            typeof q.correctOptionIndex === "number" ? q.correctOptionIndex : 0,
           points: q.points ? parseInt(q.points) : 1,
           explanation: q.explanation || "",
         })),
@@ -577,7 +652,11 @@ export default function EnhancedCourseForm() {
     formData.append("sections", JSON.stringify(sectionsData));
 
     // Optional summary quiz
-    if (summaryQuiz && summaryQuiz.title && (summaryQuiz.questions || []).length > 0) {
+    if (
+      summaryQuiz &&
+      summaryQuiz.title &&
+      (summaryQuiz.questions || []).length > 0
+    ) {
       const normalizedSummary = {
         title: summaryQuiz.title,
         description: summaryQuiz.description || "",
@@ -588,7 +667,8 @@ export default function EnhancedCourseForm() {
         questions: (summaryQuiz.questions || []).map((q) => ({
           question: q.question,
           options: (q.options || []).slice(0, 10),
-          correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+          correctOptionIndex:
+            typeof q.correctOptionIndex === "number" ? q.correctOptionIndex : 0,
           points: q.points ? parseInt(q.points) : 1,
           explanation: q.explanation || "",
         })),
@@ -610,7 +690,10 @@ export default function EnhancedCourseForm() {
     <div className="mx-auto p-6 space-y-6">
       {showAddCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddCategoryModal(false)} />
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowAddCategoryModal(false)}
+          />
           <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-10">
             <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
             <div className="space-y-4">
@@ -632,15 +715,22 @@ export default function EnhancedCourseForm() {
                   placeholder="web-development"
                 />
               </div>
-              {catError && (
-                <p className="text-sm text-red-600">{catError}</p>
-              )}
+              {catError && <p className="text-sm text-red-600">{catError}</p>}
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setShowAddCategoryModal(false)} disabled={catSubmitting}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddCategoryModal(false)}
+                disabled={catSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="button" onClick={handleCreateCategory} disabled={catSubmitting}>
+              <Button
+                type="button"
+                onClick={handleCreateCategory}
+                disabled={catSubmitting}
+              >
                 {catSubmitting ? "Adding..." : "Add Category"}
               </Button>
             </div>
@@ -718,7 +808,12 @@ export default function EnhancedCourseForm() {
                       </SelectContent>
                     </Select>
                     <div className="pt-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => setShowAddCategoryModal(true)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAddCategoryModal(true)}
+                      >
                         <Plus className="h-4 w-4 mr-2" /> Add Category
                       </Button>
                     </div>
@@ -866,9 +961,16 @@ export default function EnhancedCourseForm() {
                 <Card className="border-2">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Course Summary Quiz (Optional)</CardTitle>
+                      <CardTitle className="text-lg">
+                        Course Summary Quiz (Optional)
+                      </CardTitle>
                       {!summaryQuiz && (
-                        <Button type="button" variant="outline" size="sm" onClick={initSummaryQuiz}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={initSummaryQuiz}
+                        >
                           <Plus className="h-4 w-4 mr-2" /> Add Summary Quiz
                         </Button>
                       )}
@@ -880,28 +982,42 @@ export default function EnhancedCourseForm() {
                         <Input
                           placeholder="Summary quiz title"
                           value={summaryQuiz.title}
-                          onChange={(e) => updateSummaryQuizField("title", e.target.value)}
+                          onChange={(e) =>
+                            updateSummaryQuizField("title", e.target.value)
+                          }
                           required
                         />
                         <Input
                           type="number"
                           placeholder="Time limit (seconds)"
                           value={summaryQuiz.timeLimit}
-                          onChange={(e) => updateSummaryQuizField("timeLimit", parseInt(e.target.value || "0"))}
+                          onChange={(e) =>
+                            updateSummaryQuizField(
+                              "timeLimit",
+                              parseInt(e.target.value || "0")
+                            )
+                          }
                           min={0}
                         />
                         <Input
                           type="number"
                           placeholder="Pass score"
                           value={summaryQuiz.passScore}
-                          onChange={(e) => updateSummaryQuizField("passScore", parseInt(e.target.value || "0"))}
+                          onChange={(e) =>
+                            updateSummaryQuizField(
+                              "passScore",
+                              parseInt(e.target.value || "0")
+                            )
+                          }
                           min={0}
                         />
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id={`summary-free`}
                             checked={!!summaryQuiz.isFree}
-                            onCheckedChange={(checked) => updateSummaryQuizField("isFree", checked)}
+                            onCheckedChange={(checked) =>
+                              updateSummaryQuizField("isFree", checked)
+                            }
                           />
                           <Label htmlFor={`summary-free`}>Free Preview</Label>
                         </div>
@@ -909,17 +1025,27 @@ export default function EnhancedCourseForm() {
                       <Textarea
                         placeholder="Summary quiz description"
                         value={summaryQuiz.description || ""}
-                        onChange={(e) => updateSummaryQuizField("description", e.target.value)}
+                        onChange={(e) =>
+                          updateSummaryQuizField("description", e.target.value)
+                        }
                       />
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="font-medium text-sm">Questions</div>
-                          <Button type="button" size="sm" variant="outline" onClick={addSummaryQuestion}>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={addSummaryQuestion}
+                          >
                             <Plus className="h-4 w-4 mr-2" /> Add Question
                           </Button>
                         </div>
                         {summaryQuiz.questions.map((ques, qqIdx) => (
-                          <div key={qqIdx} className="border rounded-md p-3 space-y-3">
+                          <div
+                            key={qqIdx}
+                            className="border rounded-md p-3 space-y-3"
+                          >
                             <div className="flex items-center justify-between">
                               <div className="text-sm">Q{qqIdx + 1}</div>
                               <Button
@@ -936,29 +1062,92 @@ export default function EnhancedCourseForm() {
                             <Input
                               placeholder="Question text"
                               value={ques.question}
-                              onChange={(e) => updateSummaryQuestionField(qqIdx, "question", e.target.value)}
+                              onChange={(e) =>
+                                updateSummaryQuestionField(
+                                  qqIdx,
+                                  "question",
+                                  e.target.value
+                                )
+                              }
                               required
                             />
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <div className="text-sm">Options</div>
-                                <Button type="button" size="sm" variant="outline" onClick={() => addSummaryOption(qqIdx)} disabled={ques.options.length >= 10}>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => addSummaryOption(qqIdx)}
+                                  disabled={ques.options.length >= 10}
+                                >
                                   <Plus className="h-4 w-4 mr-2" /> Add Option
                                 </Button>
                               </div>
                               {ques.options.map((opt, ooIdx) => (
-                                <div key={ooIdx} className="flex items-center gap-2">
-                                  <input type="radio" name={`summary-correct-${qqIdx}`} checked={ques.correctOptionIndex === ooIdx} onChange={() => setSummaryCorrectOption(qqIdx, ooIdx)} />
-                                  <Input value={opt} onChange={(e) => updateSummaryOption(qqIdx, ooIdx, e.target.value)} placeholder={`Option ${ooIdx + 1}`} />
-                                  <Button type="button" size="sm" variant="ghost" onClick={() => removeSummaryOption(qqIdx, ooIdx)} disabled={ques.options.length === 2} className="text-red-600">
+                                <div
+                                  key={ooIdx}
+                                  className="flex items-center gap-2"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`summary-correct-${qqIdx}`}
+                                    checked={ques.correctOptionIndex === ooIdx}
+                                    onChange={() =>
+                                      setSummaryCorrectOption(qqIdx, ooIdx)
+                                    }
+                                  />
+                                  <Input
+                                    value={opt}
+                                    onChange={(e) =>
+                                      updateSummaryOption(
+                                        qqIdx,
+                                        ooIdx,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder={`Option ${ooIdx + 1}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      removeSummaryOption(qqIdx, ooIdx)
+                                    }
+                                    disabled={ques.options.length === 2}
+                                    className="text-red-600"
+                                  >
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </div>
                               ))}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                              <Input type="number" min={0} value={ques.points ?? 1} onChange={(e) => updateSummaryQuestionField(qqIdx, "points", parseInt(e.target.value || "0"))} placeholder="Points" />
-                              <Input value={ques.explanation || ""} onChange={(e) => updateSummaryQuestionField(qqIdx, "explanation", e.target.value)} placeholder="Explanation (optional)" />
+                              <Input
+                                type="number"
+                                min={0}
+                                value={ques.points ?? 1}
+                                onChange={(e) =>
+                                  updateSummaryQuestionField(
+                                    qqIdx,
+                                    "points",
+                                    parseInt(e.target.value || "0")
+                                  )
+                                }
+                                placeholder="Points"
+                              />
+                              <Input
+                                value={ques.explanation || ""}
+                                onChange={(e) =>
+                                  updateSummaryQuestionField(
+                                    qqIdx,
+                                    "explanation",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Explanation (optional)"
+                              />
                             </div>
                           </div>
                         ))}
@@ -1418,7 +1607,9 @@ export default function EnhancedCourseForm() {
                               <Card key={qIdx} className="border">
                                 <CardContent className="pt-4 space-y-4">
                                   <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium">Quiz {qIdx + 1}</div>
+                                    <div className="text-sm font-medium">
+                                      Quiz {qIdx + 1}
+                                    </div>
                                     <Button
                                       type="button"
                                       variant="ghost"
@@ -1433,78 +1624,236 @@ export default function EnhancedCourseForm() {
                                     <Input
                                       placeholder="Quiz title"
                                       value={quiz.title}
-                                      onChange={(e) => updateQuizField(sIdx, qIdx, "title", e.target.value)}
+                                      onChange={(e) =>
+                                        updateQuizField(
+                                          sIdx,
+                                          qIdx,
+                                          "title",
+                                          e.target.value
+                                        )
+                                      }
                                       required
                                     />
                                     <Input
                                       type="number"
                                       placeholder="Time limit (seconds)"
                                       value={quiz.timeLimit}
-                                      onChange={(e) => updateQuizField(sIdx, qIdx, "timeLimit", parseInt(e.target.value || "0"))}
+                                      onChange={(e) =>
+                                        updateQuizField(
+                                          sIdx,
+                                          qIdx,
+                                          "timeLimit",
+                                          parseInt(e.target.value || "0")
+                                        )
+                                      }
                                       min={0}
                                     />
                                     <Input
                                       type="number"
                                       placeholder="Pass score"
                                       value={quiz.passScore}
-                                      onChange={(e) => updateQuizField(sIdx, qIdx, "passScore", parseInt(e.target.value || "0"))}
+                                      onChange={(e) =>
+                                        updateQuizField(
+                                          sIdx,
+                                          qIdx,
+                                          "passScore",
+                                          parseInt(e.target.value || "0")
+                                        )
+                                      }
                                       min={0}
                                     />
                                     <div className="flex items-center space-x-2">
                                       <Checkbox
                                         id={`quiz-free-${sIdx}-${qIdx}`}
                                         checked={!!quiz.isFree}
-                                        onCheckedChange={(checked) => updateQuizField(sIdx, qIdx, "isFree", checked)}
+                                        onCheckedChange={(checked) =>
+                                          updateQuizField(
+                                            sIdx,
+                                            qIdx,
+                                            "isFree",
+                                            checked
+                                          )
+                                        }
                                       />
-                                      <Label htmlFor={`quiz-free-${sIdx}-${qIdx}`}>Free Preview</Label>
+                                      <Label
+                                        htmlFor={`quiz-free-${sIdx}-${qIdx}`}
+                                      >
+                                        Free Preview
+                                      </Label>
                                     </div>
                                   </div>
                                   <Textarea
                                     placeholder="Quiz description"
                                     value={quiz.description || ""}
-                                    onChange={(e) => updateQuizField(sIdx, qIdx, "description", e.target.value)}
+                                    onChange={(e) =>
+                                      updateQuizField(
+                                        sIdx,
+                                        qIdx,
+                                        "description",
+                                        e.target.value
+                                      )
+                                    }
                                   />
                                   <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                      <div className="font-medium text-sm">Questions</div>
-                                      <Button type="button" size="sm" variant="outline" onClick={() => addQuestion(sIdx, qIdx)}>
-                                        <Plus className="h-4 w-4 mr-2" /> Add Question
+                                      <div className="font-medium text-sm">
+                                        Questions
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => addQuestion(sIdx, qIdx)}
+                                      >
+                                        <Plus className="h-4 w-4 mr-2" /> Add
+                                        Question
                                       </Button>
                                     </div>
                                     {quiz.questions.map((ques, qqIdx) => (
-                                      <div key={qqIdx} className="border rounded-md p-3 space-y-3">
+                                      <div
+                                        key={qqIdx}
+                                        className="border rounded-md p-3 space-y-3"
+                                      >
                                         <div className="flex items-center justify-between">
-                                          <div className="text-sm">Q{qqIdx + 1}</div>
-                                          <Button type="button" variant="ghost" size="sm" onClick={() => removeQuestion(sIdx, qIdx, qqIdx)} className="text-red-600" disabled={quiz.questions.length === 1}>
+                                          <div className="text-sm">
+                                            Q{qqIdx + 1}
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              removeQuestion(sIdx, qIdx, qqIdx)
+                                            }
+                                            className="text-red-600"
+                                            disabled={
+                                              quiz.questions.length === 1
+                                            }
+                                          >
                                             <X className="h-4 w-4" />
                                           </Button>
                                         </div>
                                         <Input
                                           placeholder="Question text"
                                           value={ques.question}
-                                          onChange={(e) => updateQuestionField(sIdx, qIdx, qqIdx, "question", e.target.value)}
+                                          onChange={(e) =>
+                                            updateQuestionField(
+                                              sIdx,
+                                              qIdx,
+                                              qqIdx,
+                                              "question",
+                                              e.target.value
+                                            )
+                                          }
                                           required
                                         />
                                         <div className="space-y-2">
                                           <div className="flex items-center justify-between">
-                                            <div className="text-sm">Options</div>
-                                            <Button type="button" size="sm" variant="outline" onClick={() => addOption(sIdx, qIdx, qqIdx)} disabled={ques.options.length >= 10}>
-                                              <Plus className="h-4 w-4 mr-2" /> Add Option
+                                            <div className="text-sm">
+                                              Options
+                                            </div>
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                addOption(sIdx, qIdx, qqIdx)
+                                              }
+                                              disabled={
+                                                ques.options.length >= 10
+                                              }
+                                            >
+                                              <Plus className="h-4 w-4 mr-2" />{" "}
+                                              Add Option
                                             </Button>
                                           </div>
                                           {ques.options.map((opt, ooIdx) => (
-                                            <div key={ooIdx} className="flex items-center gap-2">
-                                              <input type="radio" name={`correct-${sIdx}-${qIdx}-${qqIdx}`} checked={ques.correctOptionIndex === ooIdx} onChange={() => setCorrectOption(sIdx, qIdx, qqIdx, ooIdx)} />
-                                              <Input value={opt} onChange={(e) => updateOption(sIdx, qIdx, qqIdx, ooIdx, e.target.value)} placeholder={`Option ${ooIdx + 1}`} />
-                                              <Button type="button" size="sm" variant="ghost" onClick={() => removeOption(sIdx, qIdx, qqIdx, ooIdx)} disabled={ques.options.length === 2} className="text-red-600">
+                                            <div
+                                              key={ooIdx}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <input
+                                                type="radio"
+                                                name={`correct-${sIdx}-${qIdx}-${qqIdx}`}
+                                                checked={
+                                                  ques.correctOptionIndex ===
+                                                  ooIdx
+                                                }
+                                                onChange={() =>
+                                                  setCorrectOption(
+                                                    sIdx,
+                                                    qIdx,
+                                                    qqIdx,
+                                                    ooIdx
+                                                  )
+                                                }
+                                              />
+                                              <Input
+                                                value={opt}
+                                                onChange={(e) =>
+                                                  updateOption(
+                                                    sIdx,
+                                                    qIdx,
+                                                    qqIdx,
+                                                    ooIdx,
+                                                    e.target.value
+                                                  )
+                                                }
+                                                placeholder={`Option ${
+                                                  ooIdx + 1
+                                                }`}
+                                              />
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() =>
+                                                  removeOption(
+                                                    sIdx,
+                                                    qIdx,
+                                                    qqIdx,
+                                                    ooIdx
+                                                  )
+                                                }
+                                                disabled={
+                                                  ques.options.length === 2
+                                                }
+                                                className="text-red-600"
+                                              >
                                                 <X className="h-4 w-4" />
                                               </Button>
                                             </div>
                                           ))}
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                          <Input type="number" min={0} value={ques.points ?? 1} onChange={(e) => updateQuestionField(sIdx, qIdx, qqIdx, "points", parseInt(e.target.value || "0"))} placeholder="Points" />
-                                          <Input value={ques.explanation || ""} onChange={(e) => updateQuestionField(sIdx, qIdx, qqIdx, "explanation", e.target.value)} placeholder="Explanation (optional)" />
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            value={ques.points ?? 1}
+                                            onChange={(e) =>
+                                              updateQuestionField(
+                                                sIdx,
+                                                qIdx,
+                                                qqIdx,
+                                                "points",
+                                                parseInt(e.target.value || "0")
+                                              )
+                                            }
+                                            placeholder="Points"
+                                          />
+                                          <Input
+                                            value={ques.explanation || ""}
+                                            onChange={(e) =>
+                                              updateQuestionField(
+                                                sIdx,
+                                                qIdx,
+                                                qqIdx,
+                                                "explanation",
+                                                e.target.value
+                                              )
+                                            }
+                                            placeholder="Explanation (optional)"
+                                          />
                                         </div>
                                       </div>
                                     ))}
@@ -1631,20 +1980,57 @@ export default function EnhancedCourseForm() {
 
                       <Separator />
 
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="certificate">
-                            Enable Certificates
-                          </Label>
-                          <p className="text-sm text-gray-500">
-                            Award certificates upon course completion
-                          </p>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="certificate">
+                              Enable Certificates
+                            </Label>
+                            <p className="text-sm text-gray-500">
+                              Award certificates upon course completion
+                            </p>
+                          </div>
+                          <Switch
+                            id="certificate"
+                            checked={certificateEnabled}
+                            onCheckedChange={setCertificateEnabled}
+                          />
                         </div>
-                        <Switch
-                          id="certificate"
-                          checked={certificateEnabled}
-                          onCheckedChange={setCertificateEnabled}
-                        />
+
+                        {certificateEnabled && (
+                          <div className="mt-4 space-y-2">
+                            <Label>Certificate Template</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+                              {certificateTemplates.map((template) => (
+                                <div
+                                  key={template.id}
+                                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                                    templateName === template.id
+                                      ? "border-primary ring-2 ring-primary/50"
+                                      : "border-gray-200 hover:border-gray-300"
+                                  }`}
+                                  onClick={() => setTemplateName(template.id)}
+                                >
+                                  <div className="relative pb-[70%] bg-gray-100 rounded overflow-hidden mb-2">
+                                    <img
+                                      src={template.preview}
+                                      alt={template.name}
+                                      className="absolute inset-0 w-full h-full object-cover"
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src =
+                                          "/certificate-placeholder.png";
+                                      }}
+                                    />
+                                  </div>
+                                  <p className="text-sm font-medium text-center">
+                                    {template.name}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
