@@ -246,17 +246,25 @@ const Settings = () => {
     e.preventDefault();
     setSettingsSaving(true);
     try {
+      // Create a new object with the settings, ensuring currency is a proper object
       const payload = {
         ...settings,
+        // Ensure currency is an object with the expected properties
+        currency: {
+          code: settings.currency?.code || "USD",
+          symbol: settings.currency?.symbol || "$",
+          position: settings.currency?.position || "prefix",
+        },
         commissionPercent: Number(settings.commissionPercent),
         taxPercent: Number(settings.taxPercent),
         payoutThreshold: Number(settings.payoutThreshold),
       };
+
       const res = await settingsAdminService.update(payload);
-      if (res?.success) {
-        toast.success("Settings saved");
+      if (res && (res.statusCode === 200 || res.message === 'Settings updated')) {
+        toast.success("Settings saved successfully");
       } else {
-        toast.error(res?.error || "Failed to save settings");
+        toast.error(res?.error || res?.message || "Failed to save settings");
       }
     } catch {
       toast.error("Failed to save settings");

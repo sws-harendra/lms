@@ -54,7 +54,7 @@ const updateSettings = async (req, res) => {
     if (logoFile) {
       update.branding.logoUrl = `/uploads/${logoFile.filename}`;
     }
-
+    
     const doc = await Setting.findOneAndUpdate({}, update, {
       new: true,
       upsert: true,

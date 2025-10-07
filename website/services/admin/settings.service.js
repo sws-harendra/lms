@@ -17,6 +17,11 @@ export const settingsAdminService = {
         Object.keys(payload.branding).forEach((brandKey) => {
           formData.append(`branding[${brandKey}]`, payload.branding[brandKey]);
         });
+      } else if (key === "currency" && typeof payload[key] === "object") {
+        // Append currency fields individually
+        Object.keys(payload.currency).forEach((currencyKey) => {
+          formData.append(`currency[${currencyKey}]`, payload.currency[currencyKey]);
+        });
       } else {
         formData.append(key, payload[key]);
       }
