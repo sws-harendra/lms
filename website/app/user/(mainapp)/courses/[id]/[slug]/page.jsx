@@ -55,6 +55,7 @@ const CourseById = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { settings } = useSelector((state) => state.appSettings);
   const router = useRouter();
   const {
     currentCourse,
@@ -766,11 +767,13 @@ const CourseById = () => {
                   {currentCourse.discountPrice && (
                     <div className="flex items-center justify-center gap-3">
                       <span className="text-4xl font-bold">
-                        ${currentCourse.discountPrice}
+                        {settings?.currency?.symbol}
+                        {currentCourse.discountPrice}
                       </span>
                       {currentCourse.price && (
                         <span className="text-xl line-through text-indigo-200">
-                          ${currentCourse.price}
+                          {settings?.currency?.symbol}
+                          {currentCourse.price}
                         </span>
                       )}
                     </div>

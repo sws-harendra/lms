@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getMediaUrl } from "@/app/utils/getAssetsUrl";
+import { useDispatch, useSelector } from "react-redux";
 
 const CourseCard = ({ course }) => {
   const {
@@ -21,6 +22,8 @@ const CourseCard = ({ course }) => {
     slug,
     isPublished,
   } = course;
+  const dispatch = useDispatch();
+  const { settings } = useSelector((state) => state.appSettings);
 
   // Calculate discount percentage
   const discountPercentage =
@@ -215,7 +218,10 @@ const CourseCard = ({ course }) => {
                       {price === 0 ? (
                         <span className="text-emerald-600">Free</span>
                       ) : (
-                        formatPrice(price)
+                        <>
+                          {settings?.currency?.symbol}
+                          {price}
+                        </>
                       )}
                     </span>
                     {originalPrice && originalPrice > price && (
